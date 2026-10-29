@@ -10,7 +10,8 @@ wb=openpyxl.load_workbook(ROOT/'Service Territory MASTER FIX.xlsx',read_only=Tru
 s={sheet.title:[row for row in sheet.values if any(v is not None for v in row)] for sheet in wb}
 wb.close()
 levels=['Provinsi','KotaKabupaten','Kecamatan','Kelurahan']
-files=['Provinsi.csv','Kota Kabupaten.csv','Kecamatan.csv','Kelurahan with kecamatan Name.csv']
+kelurahan_file='Kelurahan.csv' if (ROOT/'Kelurahan.csv').exists() else 'Kelurahan with kecamatan Name.csv'
+files=['Provinsi.csv','Kota Kabupaten.csv','Kecamatan.csv',kelurahan_file]
 objects=['Provinsi__c','Kota_Kabupaten__c','Kecamatan__c','Kelurahan__c']
 lookup=['','Provinsi__c','Kota_Kabupaten__c','Kecamatan__c']
 data=[pd.read_csv(ROOT/f,dtype=str,keep_default_na=False,encoding='cp1252').to_dict('records') for f in files]

@@ -64,6 +64,6 @@ Requires Python 3.12 and the versions in `requirements.txt`:
 python cleansing/scripts/cleanse.py --input-dir . --output-dir cleansing/output
 ```
 
-The script reads the local workbook and CSVs only. It does not authenticate to Salesforce, modify inputs, or make network calls. The input files are decoded as Windows-1252 because the exports contain bytes that are not valid UTF-8. Output CSVs use UTF-8 with BOM. Open CSV IDs as text in spreadsheet tools.
+The script reads the local workbook and CSVs only. It does not authenticate to Salesforce, modify inputs, or make network calls. The script accepts either `Kelurahan.csv` or the earlier `Kelurahan with kecamatan Name.csv`; GitHub renamed this input without changing its content. The manifest retains the filename of the analyzed snapshot. The input files are decoded as Windows-1252 because the exports contain bytes that are not valid UTF-8. Output CSVs use UTF-8 with BOM. Open CSV IDs as text in spreadsheet tools.
 
 The generator asserts input coverage, unique IDs, full-hierarchy target membership, and non-self duplicate mappings. The accompanying validation report also verifies parent-target consistency, absence of repoint cycles, exclusion of review cases from update proposals, and formula-free workbook output.
