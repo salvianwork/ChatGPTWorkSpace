@@ -1,6 +1,7 @@
 import csv,json,re,unicodedata,difflib,collections,pathlib,hashlib,zipfile,argparse
 import openpyxl
 import pandas as pd
+from output_layout import csv_folder, write_guides
 parser=argparse.ArgumentParser(description='Prepare hierarchy-aware Salesforce cleansing proposals; does not connect to Salesforce.')
 parser.add_argument('--input-dir',type=pathlib.Path,default=pathlib.Path(__file__).resolve().parents[2])
 parser.add_argument('--output-dir',type=pathlib.Path)
@@ -211,7 +212,9 @@ def public(r):return {k:v for k,v in r.items() if not k.startswith('_')}
 def write(name,rows,columns=None):
  rows=[public(r) for r in rows]
  keys=columns or list(dict.fromkeys(k for r in rows for k in r)) or ['No_records']
- with (OUT/name).open('w',newline='',encoding='utf-8-sig') as f:
+ dest=OUT/csv_folder(name)/name
+ dest.parent.mkdir(parents=True,exist_ok=True)
+ with dest.open('w',newline='',encoding='utf-8-sig') as f:
   w=csv.DictWriter(f,fieldnames=keys,extrasaction='ignore');w.writeheader();w.writerows(rows)
 summary=[]
 for i in range(4):
@@ -267,6 +270,8 @@ manifest=[]
 for f in ROOT.glob('*'):
  if f.suffix in ['.csv','.xlsx'] and not f.name.startswith('~$'):manifest.append({'File':f.name,'Bytes':f.stat().st_size,'SHA256':hashlib.sha256(f.read_bytes()).hexdigest()})
 write('Input_manifest.csv',manifest)
-json.dump(summary,open(OUT/'summary.json','w'),indent=2)
+(OUT/'07_Audit').mkdir(exist_ok=True)
+json.dump(summary,open(OUT/'07_Audit'/'summary.json','w'),indent=2)
+write_guides(OUT)
 
 print(json.dumps(summary,indent=2));print('issues',len(issues),'updates',len(updates),'repoints',len(repoints),'candidates',len(candidates),flush=True)

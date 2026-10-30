@@ -2,6 +2,10 @@
 
 Prepared from the workbook and four CSV exports in this repository on 29 October 2026. This is a mapping and review package. No Salesforce records have been changed.
 
+## CSV folders
+
+Extract `Salesforce_cleansing_CSVs_and_scripts.zip` and open `output/README.md` for the usage guide. The 27 CSVs are now organized into eight numbered folders. Start with `output/00_Start_Here/Summary.csv`. Original CSV names, contents, and row counts are preserved. This is a packaging change only.
+
 ## Start here
 
 Open `output/Salesforce_cleansing_review.xlsx`. The workbook contains the summary, invalid-record counts, object mappings, duplicate repoint proposals, review candidates, cross-level name cases, unresolved master targets, and master-data issues. For all source rows, including unchanged valid records, use the four `*_all_records.csv` files.
