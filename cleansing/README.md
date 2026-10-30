@@ -1,73 +1,40 @@
-# Salesforce service territory cleansing review
+# Tinjauan cleansing data wilayah Salesforce
 
-Prepared from the workbook and four CSV exports in this repository on 29 October 2026. This is a mapping and review package. No Salesforce records have been changed.
+Paket ini berisi usulan dan bahan tinjauan, bukan perubahan yang sudah diterapkan ke Salesforce. Snapshot data: 29 Oktober 2026. Penelusuran lintas tingkat dan penerjemahan diperbarui pada 30 Oktober 2026.
 
-## CSV folders
+## Mulai di sini
 
-Extract `Salesforce_cleansing_CSVs_and_scripts.zip` and open `output/README.md` for the usage guide. The 27 CSVs are now organized into eight numbered folders. Start with `output/00_Start_Here/Summary.csv`. Original CSV names, contents, and row counts are preserved. This is a packaging change only.
+1. Unduh dan ekstrak `Salesforce_cleansing_CSVs_and_scripts.zip`.
+2. Buka `output/README.md` untuk panduan 27 CSV berdasarkan kegunaan.
+3. Buka workbook terpisah `output/Salesforce_cleansing_review.xlsx` untuk melihat ringkasan dan kandidat tinjauan dalam Bahasa Indonesia.
 
-## Start here
+Di dalam ZIP, CSV dikelompokkan menjadi ringkasan, usulan update, penanganan duplikat, tinjauan manual, target master, seluruh record, analisis gap awal, dan audit. Nama file/folder tetap dipertahankan agar mudah ditelusuri ke versi sebelumnya.
 
-Open `output/Salesforce_cleansing_review.xlsx`. The workbook contains the summary, invalid-record counts, object mappings, duplicate repoint proposals, review candidates, cross-level name cases, unresolved master targets, and master-data issues. For all source rows, including unchanged valid records, use the four `*_all_records.csv` files.
+## Penelusuran lintas tingkat
 
-| Object | Export records | Keep | Canonical updates proposed | Duplicate repoints proposed | Review / unresolved |
-|---|---:|---:|---:|---:|---:|
-| Provinsi__c | 38 | 38 | 0 | 0 | 0 |
-| Kota_Kabupaten__c | 890 | 54 | 458 | 311 | 67 |
-| Kecamatan__c | 7,828 | 6,081 | 608 | 158 | 981 |
-| Kelurahan__c | 82,550 | 46,246 | 7,529 | 2,636 | 26,139 |
+Nama yang belum cocok ditelusuri pada provinsi, kota/kabupaten, kecamatan, dan kelurahan dalam master dan ekspor Salesforce. Temuan master dibedakan dari kemunculan dalam ekspor yang belum terverifikasi. Pencarian memakai nama yang sama setelah normalisasi, bukan kecocokan sebagian kata.
 
-The 8,595 update proposals affect canonical records. The 3,105 repoint proposals identify other records representing the same location as a verified target; they are not a deletion list. Both require business review and Salesforce dependency checks before execution.
+Dalam `Review_candidates.csv`, baris `Jenis_Bukti = TEMUAN_LINTAS_TINGKAT` hanya berisi alasan dan bukti lokasi; `Id_Target_Kandidat` selalu kosong. Jika nama tidak ditemukan pada objek asal tetapi ditemukan pada tingkat lain, saran kemiripan lama diganti oleh bukti lintas tingkat. Kemunculan nama yang sama tidak membuktikan bahwa lokasi tersebut sama, khususnya jika provinsi berbeda.
 
-## Download layout
+Contoh: Madura pada objek kota/kabupaten ditemukan sebagai nama kelurahan di beberapa provinsi dalam master, bukan sebagai kota/kabupaten valid di Jawa Timur. Ini tidak membenarkan pemetaan otomatis ke kelurahan tersebut.
 
-The review branch contains the standalone Excel workbook and `Salesforce_cleansing_CSVs_and_scripts.zip`. The ZIP contains all CSV mappings, the audit reports, and reproducible script; download the workbook separately. Extract the ZIP to recover the individual CSV files.
+## Bahasa dan kompatibilitas
 
-## Matching rules
+Judul kolom laporan, status, alasan, catatan, panduan, serta workbook diterjemahkan ke Bahasa Indonesia. ID, nama wilayah, nama file/folder, dan nama API Salesforce (`Id`, `Name`, `Provinsi__c`, `Kota_Kabupaten__c`, `Kecamatan__c`) dipertahankan. Skema JSON audit teknis dipertahankan. Padanan judul kolom tersedia dalam panduan penggunaan.
 
-1. Use distinct tuple keys from `Service Territory`: province; province + city; province + city + kecamatan; province + city + kecamatan + kelurahan. Display paths use ` | ` separators for readability, not as a concatenated matching key.
-2. Resolve parent lookups through the exported IDs. Use your city `Name Changes` values only when they validate within the resolved province. Normalize case, spacing, punctuation, and explicit administrative prefixes only where the normalized result is unique within the parent.
-3. Use missing-parent text and legacy `Kecamatans__c` only as recovery evidence, retaining review status. Parent recovery is never sufficient for a canonical update or duplicate retirement proposal. Recovery inherited from a parent also requires review.
-4. When a kelurahan direct city lookup disagrees with the linked kecamatan city, keep it in `REVIEW_PARENT_CONFLICT`. The direct city and linked parent path are both recorded. Neither relationship is silently overwritten.
-5. Verify preferred workbook target IDs against the complete exported hierarchy. Do not trust a workbook lookup ID alone. When the workbook has no target ID, a unique existing canonical-name record, or a single deterministic source requiring renaming, may supply a target. Conflicting preferred IDs are held for review.
-6. Similarity candidates and same-city name candidates are suggestions only. Similarity is a character-comparison score, not a probability or confidence percentage. No fuzzy suggestion is promoted to an approved mapping.
+Keputusan pada 8.595 usulan update dan 3.105 pemetaan duplikat tidak diubah oleh penelusuran ini. Semua 91.306 record sumber tetap tercakup. Kasus yang memerlukan konfirmasi tetap memerlukan tinjauan.
 
-## Important findings
+## Sebelum menerapkan
 
-- All 38 provinces match the master.
-- `Service Territory` has 83,763 rows but 83,759 distinct complete kelurahan paths. Four paths have duplicate rows, potentially with different postal codes. `Kelurahan New` is consistent with the 83,759 full paths. The older `Kelurahan` sheet has 83,579 entries and uses kecamatan + kelurahan, which is not sufficient to disambiguate all locations.
-- The older Summary reports 19,727 unmatched kelurahan; the newer full city + kecamatan + kelurahan key flags 24,340. Both source calculations are preserved in `Gap_analysis_reconciliation.csv`.
-- 11,181 exported kelurahan have conflicting direct-city and kecamatan-city relationships. This includes some rows the original name-only gap analysis considered matched.
-- 441 unmatched kecamatan source records have names also found as kelurahan within the same city. The separate cross-level table suggests the actual parent kecamatan for review; it does not assume these records should be merged.
-- 4,460 preferred kelurahan master IDs cannot be verified without reviewing missing or conflicting parent relationships. See `Master_data_issues.csv`. This is a validation concern, not proof that every listed workbook ID is incorrect.
+Tinjau dalam urutan provinsi → kota/kabupaten → kecamatan → kelurahan. File usulan memuat kolom audit dan bukan file Data Loader siap pakai. Siapkan file terpisah yang hanya berisi Id dan kolom API yang disetujui. Kolom usulan kosong berarti tidak diubah, bukan dikosongkan di Salesforce. Untuk duplikat, verifikasi dan pindahkan semua referensi sebelum menonaktifkan record sumber. Target master yang belum terverifikasi bukan daftar insert otomatis.
 
-## Files
+## Menghasilkan ulang
 
-- `*_gap_invalid_mapping.csv`: only records your original analysis flagged as unmatched (using `Id Reference New` for kelurahan).
-- `*_cleansing_mapping.csv`: all records needing action or review, including newly detected hierarchy problems.
-- `*_all_records.csv`: one output row per source record with IDs, proposed master hierarchy, match method, status, action, and notes.
-- `*_canonical_update_proposals.csv`: proposed changed fields plus original names and parent IDs for audit. Blank proposed fields mean no change; do not use blanks to clear Salesforce fields. These tables include audit columns and are not direct Data Loader import files.
-- `Duplicate_repoint_proposals.csv`: source-to-target IDs for deterministic duplicates.
-- `Review_candidates.csv`: alternatives for uncertain names, parent conflicts, and possible administrative-level errors. Some sources have no justified candidate and remain unmatched. Candidate target IDs may be blank until a canonical record is resolved or created.
-- `Master_target_inventory.csv` and `Missing_or_unresolved_master_targets.csv`: every master location and its target-resolution state. Insert suggestions are provisional; reconcile unresolved source records first to avoid creating more duplicates.
-- `Input_manifest.csv` and `Validation_report.json`: input checksums and data-integrity validation.
-
-For every `REVIEW_*` row, populated target fields are tentative evidence only. Resolve the review status before using any suggested ID. `MAPPED_TARGET_UNRESOLVED` rows have a matching master path but no safely verified target ID; they are not approved repoints.
-
-## Review and apply
-
-Review in province → city/regency → kecamatan → kelurahan order. Confirm uncertain parent links and master target IDs first. For approved updates, create object-specific Data Loader files containing `Id` and only the approved changed Salesforce fields. Apply small batches in a sandbox, verify counts and relationships, then use the same approved process in production.
-
-These are custom objects: do not assume Salesforce supports the standard Account/Contact merge operation for them. Before retiring a duplicate, inventory and repoint all referencing lookups across the org, not only those in these four exports. The package contains no executable deletion list. Postal codes are retained as source evidence and are not automatically changed.
-
-## Reproduce
-
-Requires Python 3.12 and the versions in `requirements.txt`:
+Gunakan versi dependensi dalam `requirements.txt`, lalu jalankan dari root repository:
 
 ```bash
 python cleansing/scripts/cleanse.py --input-dir . --output-dir cleansing/output
+python cleansing/scripts/review_dan_terjemahkan.py --input-dir . --output-dir cleansing/output
 ```
 
-The script reads the local workbook and CSVs only. It does not authenticate to Salesforce, modify inputs, or make network calls. The script accepts either `Kelurahan.csv` or the earlier `Kelurahan with kecamatan Name.csv`; GitHub renamed this input without changing its content. The manifest retains the filename of the analyzed snapshot. The input files are decoded as Windows-1252 because the exports contain bytes that are not valid UTF-8. Output CSVs use UTF-8 with BOM. Open CSV IDs as text in spreadsheet tools.
-
-The generator asserts input coverage, unique IDs, full-hierarchy target membership, and non-self duplicate mappings. The accompanying validation report also verifies parent-target consistency, absence of repoint cycles, exclusion of review cases from update proposals, and formula-free workbook output.
+Generator menghasilkan data dasar, kemudian tahap kedua menelusuri nama lintas tingkat dan menerjemahkan keluaran. Tidak ada koneksi atau perubahan ke Salesforce. Rincian validasi penelusuran tersedia di `output/07_Audit/Laporan_tinjauan_bahasa.md` dalam ZIP.
