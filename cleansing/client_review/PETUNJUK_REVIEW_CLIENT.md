@@ -10,7 +10,7 @@ Client diminta mengonfirmasi tiga jenis keputusan utama:
 
 ## Cara review yang sederhana
 
-Gunakan `REVIEW_CLIENT_SEDERHANA.xlsx` sebagai file utama. Isi 14 baris pada lembar `KEPUTUSAN UTAMA`. Jika hanya beberapa record yang berbeda dari keputusan umum, masukkan record tersebut pada lembar `PENGECUALIAN`. Client tidak perlu mengisi seluruh daftar rinci satu per satu.
+Gunakan `Mandatory for Client/01_REVIEW_CLIENT_SEDERHANA.xlsx` sebagai file utama. Isi 14 baris pada lembar `KEPUTUSAN UTAMA`. Jika hanya beberapa record yang berbeda dari keputusan umum, masukkan record tersebut pada lembar `PENGECUALIAN`. Client tidak perlu mengisi seluruh daftar rinci satu per satu.
 
 Workbook rinci dan workbook mapping ID digunakan sebagai referensi oleh tim data atau saat client ingin memeriksa record tertentu.
 
@@ -26,7 +26,7 @@ Jumlahnya adalah 38 Provinsi, 54 Kota/Kabupaten, 6.081 Kecamatan, dan 46.246 Kel
 
 ## Cara mengisi workbook
 
-Gunakan `REVIEW_CLIENT_DATA_REGIONAL.xlsx`. Isi kolom berwarna kuning pada setiap lembar yang perlu ditinjau. Lembar yang namanya diawali `VALID` hanya untuk dibaca.
+Gunakan `Mandatory for Client/02_REVIEW_CLIENT_DATA_REGIONAL.xlsx`. Isi kolom berwarna kuning pada setiap lembar yang perlu ditinjau. Lembar yang namanya diawali `VALID` hanya untuk dibaca.
 
 ### Data yang perlu diubah
 

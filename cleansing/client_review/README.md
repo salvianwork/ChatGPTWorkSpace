@@ -2,23 +2,20 @@
 
 Folder ini digunakan untuk review dan konfirmasi client sebelum perubahan data dilakukan di Salesforce.
 
-## File yang dibuka terlebih dahulu
+## File yang dikirim ke client
 
-1. `REVIEW_CLIENT_SEDERHANA.xlsx` — file utama; client cukup mengisi 14 keputusan dan mencatat pengecualian.
-2. `REVIEW_CLIENT_DATA_REGIONAL.xlsx` — rincian lengkap jika client ingin memeriksa record tertentu.
-3. `MAPPING_ID_INVALID_KE_VALID.xlsx` — referensi rinci pemetaan ID untuk tim data.
-4. `PETUNJUK_REVIEW_CLIENT.md` — cara melakukan review.
-5. `RINGKASAN_DATA_CLIENT.csv` — jumlah data per kelompok tindakan.
-6. `KAMUS_ISTILAH.md` — penjelasan istilah dalam bahasa sederhana.
+Buka folder `Mandatory for Client` dan kirim kedua workbook di dalamnya:
 
-Workbook rinci mempunyai empat lembar yang namanya diawali `VALID`. Lembar tersebut menjelaskan record yang sudah sesuai master dan tidak memerlukan keputusan client.
+1. `01_REVIEW_CLIENT_SEDERHANA.xlsx` — file utama; client cukup mengisi 14 keputusan dan mencatat pengecualian.
+2. `02_REVIEW_CLIENT_DATA_REGIONAL.xlsx` — rincian lengkap jika client ingin memeriksa record tertentu.
 
-## File ZIP
+## File pendukung tim data
 
-- `CLIENT_REVIEW_CSV_DAN_PETUNJUK.zip` adalah paket utama. Paket ini berisi workbook sederhana, petunjuk, CSV keputusan, workbook mapping ID, dan folder `05_DATA_SUDAH_SESUAI_MASTER`.
-- `CLIENT_REVIEW_PILIHAN_MAPPING.zip` hanya referensi tambahan jika pilihan dalam folder `04_DATA_BELUM_JELAS` belum cukup.
+- `MAPPING_ID_INVALID_KE_VALID.xlsx` digunakan setelah keputusan client untuk menyiapkan pemetaan ID.
+- `CLIENT_REVIEW_PILIHAN_MAPPING.zip` hanya digunakan jika pilihan pada data belum jelas belum cukup.
+- `CLIENT_REVIEW_CSV_DAN_PETUNJUK.zip` berisi seluruh paket, termasuk folder `Mandatory for Client` dan CSV referensi.
 
-Client dapat memulai dari workbook sederhana atau paket utama. ZIP pilihan mapping tidak perlu dibuka pada review awal.
+`PETUNJUK_REVIEW_CLIENT.md`, `RINGKASAN_DATA_CLIENT.csv`, dan `KAMUS_ISTILAH.md` dapat digunakan saat membutuhkan penjelasan tambahan.
 
 Paket ini bukan file upload Salesforce. Setelah keputusan client selesai, hasil review perlu diproses menjadi file update, insert, dan pemindahan hubungan duplikat secara terpisah.
 
