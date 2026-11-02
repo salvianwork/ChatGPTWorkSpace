@@ -8,9 +8,15 @@ Client diminta mengonfirmasi tiga jenis keputusan utama:
 2. Data yang perlu dibuat baru.
 3. Data yang perlu diarahkan atau dipetakan ke data lain.
 
+## Data yang sudah sesuai master
+
+Folder `05_DATA_SUDAH_SESUAI_MASTER` dan lembar workbook yang namanya diawali `VALID` berisi record yang sudah cocok dengan master. Data ini disediakan sebagai dasar pemeriksaan jumlah dan tidak memerlukan keputusan client.
+
+Jumlahnya adalah 38 Provinsi, 54 Kota/Kabupaten, 6.081 Kecamatan, dan 46.246 Kelurahan.
+
 ## Cara mengisi workbook
 
-Gunakan `REVIEW_CLIENT_DATA_REGIONAL.xlsx`. Isi kolom berwarna kuning pada setiap lembar yang perlu ditinjau.
+Gunakan `REVIEW_CLIENT_DATA_REGIONAL.xlsx`. Isi kolom berwarna kuning pada setiap lembar yang perlu ditinjau. Lembar yang namanya diawali `VALID` hanya untuk dibaca.
 
 ### Data yang perlu diubah
 
@@ -50,7 +56,7 @@ Pilihan `Keputusan_Client`:
 - `DATA_DI_LUAR_MASTER`: data tidak termasuk dalam master regional.
 - `PERLU_DISKUSI`: keputusan belum jelas.
 
-Jika memilih kandidat, periksa nama, hierarki wilayah, ID tujuan, dan alasannya. Jika kandidat berasal dari tingkat wilayah lain, gunakan hanya sebagai petunjuk.
+Jika memilih kandidat, periksa nama, susunan wilayah, ID tujuan, dan alasannya. Jika kandidat berasal dari tingkat wilayah lain, gunakan hanya sebagai petunjuk.
 
 ## Setelah review selesai
 

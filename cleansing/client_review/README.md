@@ -4,21 +4,19 @@ Folder ini digunakan untuk review dan konfirmasi client sebelum perubahan data d
 
 ## File yang dibuka terlebih dahulu
 
-1. `REVIEW_CLIENT_DATA_REGIONAL.xlsx` — file utama untuk mengisi keputusan client.
+1. `REVIEW_CLIENT_DATA_REGIONAL.xlsx` — file utama untuk melihat data dan mengisi keputusan client.
 2. `PETUNJUK_REVIEW_CLIENT.md` — cara melakukan review.
 3. `RINGKASAN_DATA_CLIENT.csv` — jumlah data per kelompok tindakan.
 4. `KAMUS_ISTILAH.md` — penjelasan istilah dalam bahasa sederhana.
 
+Workbook sekarang mempunyai empat lembar yang namanya diawali `VALID`. Lembar tersebut menjelaskan record yang sudah sesuai master dan tidak memerlukan keputusan client.
+
 ## File ZIP
 
-- `CLIENT_REVIEW_CSV_DAN_PETUNJUK.zip` berisi petunjuk, ringkasan, dan seluruh CSV keputusan utama. Workbook tersedia sebagai file terpisah agar mudah dibuka.
-- `CLIENT_REVIEW_PILIHAN_MAPPING.zip` berisi seluruh pilihan mapping lengkap untuk data yang belum jelas.
+- `CLIENT_REVIEW_CSV_DAN_PETUNJUK.zip` adalah paket utama. Paket ini berisi petunjuk, CSV keputusan, dan folder `05_DATA_SUDAH_SESUAI_MASTER`.
+- `CLIENT_REVIEW_PILIHAN_MAPPING.zip` hanya referensi tambahan jika pilihan dalam folder `04_DATA_BELUM_JELAS` belum cukup.
 
-Pilihan mapping dipisahkan karena ukurannya besar. Client dapat memulai dari paket utama dan hanya membuka paket mapping jika membutuhkan pilihan tambahan.
-
-## Cara client memberikan keputusan
-
-Isi kolom berwarna kuning dalam workbook. Pilihan jawaban tersedia dalam dropdown.
+Client dapat memulai dari workbook atau paket utama. ZIP pilihan mapping tidak perlu dibuka pada review awal.
 
 Paket ini bukan file upload Salesforce. Setelah keputusan client selesai, hasil review perlu diproses menjadi file update, insert, dan pemindahan hubungan duplikat secara terpisah.
 
