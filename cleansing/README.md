@@ -6,9 +6,10 @@ Paket ini membantu menentukan data yang perlu dipertahankan, diperbaiki, diperik
 
 1. Unduh dan ekstrak `Salesforce_cleansing_CSVs_and_scripts.zip`.
 2. Buka `output/00_Start_Here/BACA_INI_DULU.md`.
-3. Lihat `Ringkasan_Mencapai_Jumlah_Master.csv` untuk memahami cara mencapai jumlah master.
-4. Lihat `Ringkasan_Record_Salesforce_Lain.csv` untuk memahami data duplikat dan data lain yang masih perlu diperiksa.
-5. Gunakan workbook `output/Salesforce_cleansing_review.xlsx` jika ingin membaca hasil dalam satu file Excel.
+3. Buka `output/00_Start_Here/KAMUS_ISTILAH.md` jika menemukan istilah yang belum jelas.
+4. Lihat `Ringkasan_Mencapai_Jumlah_Master.csv` untuk memahami cara mencapai jumlah master.
+5. Lihat `Ringkasan_Record_Salesforce_Lain.csv` untuk memahami data duplikat dan data lain yang masih perlu diperiksa.
+6. Gunakan workbook `output/Salesforce_cleansing_review.xlsx` jika ingin membaca hasil dalam satu file Excel.
 
 ## Arti kelompok utama
 

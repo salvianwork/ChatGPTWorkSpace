@@ -4,7 +4,7 @@ Folder berikut berada di dalam ZIP setelah diekstrak.
 
 Paket berasal dari snapshot data 29 Oktober 2026. Tinjauan lintas tingkat dan penerjemahan diperbarui pada 30 Oktober 2026. Tidak ada perubahan pada Salesforce.
 
-Mulai dari `00_Start_Here/BACA_INI_DULU.md`. Dokumen tersebut menjelaskan data yang sudah benar, perlu diperbaiki, calon data baru, data duplikat, dan data yang masih perlu diperiksa. Nama wilayah, ID, dan kolom API Salesforce tetap dipertahankan.
+Mulai dari `00_Start_Here/BACA_INI_DULU.md`. Jika ada istilah yang belum jelas, buka `00_Start_Here/KAMUS_ISTILAH.md`. Nama wilayah, ID, dan kolom API Salesforce tetap dipertahankan.
 
 | Folder | Kegunaan |
 |---|---|

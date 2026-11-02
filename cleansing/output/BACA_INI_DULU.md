@@ -12,6 +12,8 @@ Tujuannya adalah memastikan setiap lokasi dalam master mempunyai satu data Sales
 
 Gunakan `Ringkasan_Mencapai_Jumlah_Master.csv` untuk melihat cara mencapai jumlah master. Gunakan `Ringkasan_Record_Salesforce_Lain.csv` untuk melihat duplikat dan data lain yang masih perlu diperiksa.
 
+Jika menemukan istilah yang belum jelas, buka `KAMUS_ISTILAH.md` atau `Kamus_Istilah.csv`.
+
 Urutan kerja: perbaiki data utama, tangani duplikat, selesaikan data yang belum jelas, lalu buat data baru yang benar-benar belum ada. Kerjakan dari Provinsi, Kota/Kabupaten, Kecamatan, lalu Kelurahan.
 
 Tidak ada file dalam paket ini yang boleh langsung diunggah tanpa pemeriksaan.
