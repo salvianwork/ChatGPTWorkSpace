@@ -8,6 +8,10 @@ Client diminta mengonfirmasi tiga jenis keputusan utama:
 2. Data yang perlu dibuat baru.
 3. Data yang perlu diarahkan atau dipetakan ke data lain.
 
+## Workbook mapping ID
+
+Gunakan `MAPPING_ID_INVALID_KE_VALID.xlsx` untuk mengisi keputusan `Id_Invalid` harus diarahkan ke `Id_Valid_Final_Client` mana. Workbook tersebut menyatukan data duplikat dan data yang belum jelas. Kolom berwarna kuning perlu diisi oleh client. Jumlah data transaksi yang menggunakan ID invalid harus dihitung dari ekspor transaksi sebelum migrasi dilakukan.
+
 ## Data yang sudah sesuai master
 
 Folder `05_DATA_SUDAH_SESUAI_MASTER` dan lembar workbook yang namanya diawali `VALID` berisi record yang sudah cocok dengan master. Data ini disediakan sebagai dasar pemeriksaan jumlah dan tidak memerlukan keputusan client.
