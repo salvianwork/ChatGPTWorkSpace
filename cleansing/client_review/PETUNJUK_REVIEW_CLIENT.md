@@ -8,6 +8,12 @@ Client diminta mengonfirmasi tiga jenis keputusan utama:
 2. Data yang perlu dibuat baru.
 3. Data yang perlu diarahkan atau dipetakan ke data lain.
 
+## Cara review yang sederhana
+
+Gunakan `REVIEW_CLIENT_SEDERHANA.xlsx` sebagai file utama. Isi 14 baris pada lembar `KEPUTUSAN UTAMA`. Jika hanya beberapa record yang berbeda dari keputusan umum, masukkan record tersebut pada lembar `PENGECUALIAN`. Client tidak perlu mengisi seluruh daftar rinci satu per satu.
+
+Workbook rinci dan workbook mapping ID digunakan sebagai referensi oleh tim data atau saat client ingin memeriksa record tertentu.
+
 ## Workbook mapping ID
 
 Gunakan `MAPPING_ID_INVALID_KE_VALID.xlsx` untuk mengisi keputusan `Id_Invalid` harus diarahkan ke `Id_Valid_Final_Client` mana. Workbook tersebut menyatukan data duplikat dan data yang belum jelas. Kolom berwarna kuning perlu diisi oleh client. Jumlah data transaksi yang menggunakan ID invalid harus dihitung dari ekspor transaksi sebelum migrasi dilakukan.
