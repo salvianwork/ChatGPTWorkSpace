@@ -4,11 +4,11 @@ Folder berikut berada di dalam ZIP setelah diekstrak.
 
 Paket berasal dari snapshot data 29 Oktober 2026. Tinjauan lintas tingkat dan penerjemahan diperbarui pada 30 Oktober 2026. Tidak ada perubahan pada Salesforce.
 
-Mulai dari `00_Start_Here/Summary.csv`. Nama file, folder, nama wilayah, ID dan kolom API Salesforce dipertahankan. Judul kolom laporan, status, alasan, catatan, dan panduan diterjemahkan ke Bahasa Indonesia.
+Mulai dari `00_Start_Here/BACA_INI_DULU.md`. Dokumen tersebut menjelaskan data yang sudah benar, perlu diperbaiki, calon data baru, data duplikat, dan data yang masih perlu diperiksa. Nama wilayah, ID, dan kolom API Salesforce tetap dipertahankan.
 
 | Folder | Kegunaan |
 |---|---|
-| 00_Start_Here | Mulai di sini: Ringkasan seluruh hasil. Angka pada file lain dapat saling tumpang tindih; jangan dijumlahkan antarfile. |
+| 00_Start_Here | Ringkasan sederhana dan angka utama untuk menentukan tindakan. |
 | 01_Update_Proposals | Usulan pembaruan: Usulan perubahan nama atau lookup induk. Tinjau sebelum menyiapkan file upload yang hanya memuat Id dan kolom API yang disetujui. Kolom usulan kosong berarti tidak diubah, bukan dihapus. |
 | 02_Duplicate_Handling | Penanganan duplikat: Pemetaan Id sumber ke Id target. Verifikasi seluruh referensi sebelum memindahkannya. File ini bukan daftar upload atau penghapusan. |
 | 03_Manual_Review | Tinjauan manual: Daftar kerja cleansing, kandidat, serta temuan lintas tingkat. Temuan nama pada tingkat lain tidak membuktikan bahwa lokasinya sama. Semua ID kandidat lintas tingkat dikosongkan. |

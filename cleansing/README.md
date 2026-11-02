@@ -1,40 +1,38 @@
-# Tinjauan cleansing data wilayah Salesforce
+# Hasil pemeriksaan data wilayah Salesforce
 
-Paket ini berisi usulan dan bahan tinjauan, bukan perubahan yang sudah diterapkan ke Salesforce. Snapshot data: 29 Oktober 2026. Penelusuran lintas tingkat dan penerjemahan diperbarui pada 30 Oktober 2026.
+Paket ini membantu menentukan data yang perlu dipertahankan, diperbaiki, diperiksa, atau mungkin dibuat baru. Belum ada data Salesforce yang diubah atau dihapus.
 
-## Mulai di sini
+## Mulai dari sini
 
 1. Unduh dan ekstrak `Salesforce_cleansing_CSVs_and_scripts.zip`.
-2. Buka `output/README.md` untuk panduan 27 CSV berdasarkan kegunaan.
-3. Buka workbook terpisah `output/Salesforce_cleansing_review.xlsx` untuk melihat ringkasan dan kandidat tinjauan dalam Bahasa Indonesia.
+2. Buka `output/00_Start_Here/BACA_INI_DULU.md`.
+3. Lihat `Ringkasan_Mencapai_Jumlah_Master.csv` untuk memahami cara mencapai jumlah master.
+4. Lihat `Ringkasan_Record_Salesforce_Lain.csv` untuk memahami data duplikat dan data lain yang masih perlu diperiksa.
+5. Gunakan workbook `output/Salesforce_cleansing_review.xlsx` jika ingin membaca hasil dalam satu file Excel.
 
-Di dalam ZIP, CSV dikelompokkan menjadi ringkasan, usulan update, penanganan duplikat, tinjauan manual, target master, seluruh record, analisis gap awal, dan audit. Nama file/folder tetap dipertahankan agar mudah ditelusuri ke versi sebelumnya.
+## Arti kelompok utama
 
-## Penelusuran lintas tingkat
+- **Sudah benar**: tidak perlu diubah.
+- **Perlu diperbaiki**: data sudah ada, tetapi nama atau hubungan ke wilayah induknya perlu diperbaiki.
+- **Calon data baru**: lokasi ada di master, tetapi belum ditemukan data Salesforce yang dapat dipakai. Periksa lagi sebelum membuat data baru.
+- **Perlu diperiksa sebelum membuat data baru**: data mungkin sudah ada, tetapi ID atau hubungan induknya belum pasti.
+- **Data duplikat**: beberapa data mewakili lokasi yang sama. Pindahkan semua referensi sebelum menonaktifkan atau menghapus duplikat.
+- **Data lain yang perlu diperiksa**: tentukan apakah data dapat diperbaiki, merupakan duplikat, berada pada tingkat wilayah yang salah, atau tidak termasuk dalam master.
 
-Nama yang belum cocok ditelusuri pada provinsi, kota/kabupaten, kecamatan, dan kelurahan dalam master dan ekspor Salesforce. Temuan master dibedakan dari kemunculan dalam ekspor yang belum terverifikasi. Pencarian memakai nama yang sama setelah normalisasi, bukan kecocokan sebagian kata.
+## Urutan kerja
 
-Dalam `Review_candidates.csv`, baris `Jenis_Bukti = TEMUAN_LINTAS_TINGKAT` hanya berisi alasan dan bukti lokasi; `Id_Target_Kandidat` selalu kosong. Jika nama tidak ditemukan pada objek asal tetapi ditemukan pada tingkat lain, saran kemiripan lama diganti oleh bukti lintas tingkat. Kemunculan nama yang sama tidak membuktikan bahwa lokasi tersebut sama, khususnya jika provinsi berbeda.
+Kerjakan Provinsi terlebih dahulu, lalu Kota/Kabupaten, Kecamatan, dan Kelurahan.
 
-Contoh: Madura pada objek kota/kabupaten ditemukan sebagai nama kelurahan di beberapa provinsi dalam master, bukan sebagai kota/kabupaten valid di Jawa Timur. Ini tidak membenarkan pemetaan otomatis ke kelurahan tersebut.
+1. Perbaiki data dari folder `01_Update_Proposals`.
+2. Tangani duplikat dari folder `02_Duplicate_Handling`.
+3. Selesaikan data yang belum jelas dari folder `03_Manual_Review`.
+4. Periksa calon data baru dari folder `04_Master_Targets`.
+5. Buat data baru hanya jika sudah dipastikan bahwa data tersebut belum ada.
 
-## Bahasa dan kompatibilitas
+## Catatan penting
 
-Judul kolom laporan, status, alasan, catatan, panduan, serta workbook diterjemahkan ke Bahasa Indonesia. ID, nama wilayah, nama file/folder, dan nama API Salesforce (`Id`, `Name`, `Provinsi__c`, `Kota_Kabupaten__c`, `Kecamatan__c`) dipertahankan. Skema JSON audit teknis dipertahankan. Padanan judul kolom tersedia dalam panduan penggunaan.
+Nama yang ditemukan pada tingkat wilayah lain hanya menjadi petunjuk. Contohnya, nama Madura ditemukan sebagai kelurahan di beberapa lokasi, tetapi hal tersebut tidak berarti record Kota/Kabupaten bernama Madura boleh otomatis diarahkan ke kelurahan tersebut.
 
-Keputusan pada 8.595 usulan update dan 3.105 pemetaan duplikat tidak diubah oleh penelusuran ini. Semua 91.306 record sumber tetap tercakup. Kasus yang memerlukan konfirmasi tetap memerlukan tinjauan.
+File usulan masih memuat kolom penjelasan dan belum siap langsung diunggah. Setelah disetujui, buat file upload terpisah yang hanya berisi `Id` dan kolom Salesforce yang benar-benar perlu diubah. Kolom kosong berarti tidak diubah.
 
-## Sebelum menerapkan
-
-Tinjau dalam urutan provinsi → kota/kabupaten → kecamatan → kelurahan. File usulan memuat kolom audit dan bukan file Data Loader siap pakai. Siapkan file terpisah yang hanya berisi Id dan kolom API yang disetujui. Kolom usulan kosong berarti tidak diubah, bukan dikosongkan di Salesforce. Untuk duplikat, verifikasi dan pindahkan semua referensi sebelum menonaktifkan record sumber. Target master yang belum terverifikasi bukan daftar insert otomatis.
-
-## Menghasilkan ulang
-
-Gunakan versi dependensi dalam `requirements.txt`, lalu jalankan dari root repository:
-
-```bash
-python cleansing/scripts/cleanse.py --input-dir . --output-dir cleansing/output
-python cleansing/scripts/review_dan_terjemahkan.py --input-dir . --output-dir cleansing/output
-```
-
-Generator menghasilkan data dasar, kemudian tahap kedua menelusuri nama lintas tingkat dan menerjemahkan keluaran. Tidak ada koneksi atau perubahan ke Salesforce. Rincian validasi penelusuran tersedia di `output/07_Audit/Laporan_tinjauan_bahasa.md` dalam ZIP.
+Data berasal dari snapshot 29 Oktober 2026. Pemeriksaan nama pada semua tingkat wilayah diperbarui pada 30 Oktober 2026.

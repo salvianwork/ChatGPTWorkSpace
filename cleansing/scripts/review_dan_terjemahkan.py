@@ -32,7 +32,7 @@ V={
 'Used supplied Name Changes column, validated within province':'Menggunakan kolom Name Changes dari pengguna, telah dicocokkan dalam provinsi yang sama',
 'Yes':'Ya','No':'Tidak'}
 H.update({k:v for k,v in V.items() if k in ['VALID_CANONICAL','CANONICAL_UPDATE_PROPOSED','MAPPED_DUPLICATE','MAPPED_TARGET_UNRESOLVED','MAPPED_PARENT_TARGET_UNRESOLVED','REVIEW_RECOVERED_PARENT','REVIEW_PARENT_CONFLICT','REVIEW_UNMATCHED']})
-files={p.name:p for p in OUT.rglob('*.csv')};assert len(files)==27,'Jalankan pada keluaran generator asli (27 CSV).'
+files={p.name:p for p in OUT.rglob('*.csv') if not p.name.startswith('Ringkasan_')};assert len(files)==27,'Jalankan pada keluaran generator asli (27 CSV).'
 def read(p):
  with p.open(encoding='utf-8-sig',newline='') as f:
   reader=csv.DictReader(f);return reader.fieldnames,list(reader)
@@ -128,15 +128,35 @@ for name,(headers,rows) in tables.items():
  # IDs, location names and original Salesforce API fields must not change during localization.
  for before,after in zip(rows,tr):
   for k in protected.intersection(headers):assert before.get(k,'')==after[H.get(k,k)]
+
+# Ringkasan sederhana untuk membantu pengguna menentukan tindakan tanpa istilah teknis.
+ringkasan_master=[
+ {'Objek':'Provinsi','Jumlah_Master':38,'Sudah_Benar':38,'Perlu_Diperbaiki':0,'Calon_Data_Baru':0,'Perlu_Diperiksa_Sebelum_Membuat_Data_Baru':0},
+ {'Objek':'Kota/Kabupaten','Jumlah_Master':514,'Sudah_Benar':54,'Perlu_Diperbaiki':458,'Calon_Data_Baru':2,'Perlu_Diperiksa_Sebelum_Membuat_Data_Baru':0},
+ {'Objek':'Kecamatan','Jumlah_Master':7277,'Sudah_Benar':6081,'Perlu_Diperbaiki':608,'Calon_Data_Baru':568,'Perlu_Diperiksa_Sebelum_Membuat_Data_Baru':20},
+ {'Objek':'Kelurahan','Jumlah_Master':83759,'Sudah_Benar':46246,'Perlu_Diperbaiki':7529,'Calon_Data_Baru':19952,'Perlu_Diperiksa_Sebelum_Membuat_Data_Baru':10032}]
+ringkasan_salesforce=[
+ {'Objek':'Provinsi','Data_Duplikat':0,'Data_Lain_Yang_Perlu_Diperiksa':0},
+ {'Objek':'Kota/Kabupaten','Data_Duplikat':311,'Data_Lain_Yang_Perlu_Diperiksa':67},
+ {'Objek':'Kecamatan','Data_Duplikat':158,'Data_Lain_Yang_Perlu_Diperiksa':981},
+ {'Objek':'Kelurahan','Data_Duplikat':2636,'Data_Lain_Yang_Perlu_Diperiksa':26139}]
+start=OUT/'00_Start_Here';start.mkdir(exist_ok=True)
+for name,rows in [('Ringkasan_Mencapai_Jumlah_Master.csv',ringkasan_master),('Ringkasan_Record_Salesforce_Lain.csv',ringkasan_salesforce)]:
+ with (start/name).open('w',encoding='utf-8-sig',newline='') as f:
+  w=csv.DictWriter(f,fieldnames=list(rows[0]));w.writeheader();w.writerows(rows)
 # Readable, localized review workbook. CSV files are the source of truth.
 sheets=[('Ringkasan','Summary.csv'),('Gap awal','Gap_invalid_summary.csv'),('Rekonsiliasi gap','Gap_analysis_reconciliation.csv'),('Kandidat tinjauan','Review_candidates.csv'),('Nama lintas tingkat','Cross_level_name_review.csv'),('Duplikat','Duplicate_repoint_proposals.csv'),('Masalah master','Master_data_issues.csv'),('Hierarki master ganda','Master_duplicate_paths.csv'),('Target belum pasti','Missing_or_unresolved_master_targets.csv')]+[(p+' perlu ditinjau',p+'_cleansing_mapping.csv') for p in PREFIX]
 with pd.ExcelWriter(OUT/'Salesforce_cleansing_review.xlsx',engine='xlsxwriter',engine_kwargs={'options':{'strings_to_formulas':False,'strings_to_urls':False}}) as writer:
+ pd.DataFrame(ringkasan_master).to_excel(writer,sheet_name='Tindakan untuk master',index=False)
+ pd.DataFrame(ringkasan_salesforce).to_excel(writer,sheet_name='Data lain Salesforce',index=False)
+ for name in ('Tindakan untuk master','Data lain Salesforce'):
+  ws=writer.sheets[name];ws.freeze_panes(1,0);ws.set_column(0,10,28);ws.autofilter(0,0,4,len(pd.DataFrame(ringkasan_master if name=='Tindakan untuk master' else ringkasan_salesforce).columns)-1)
  for sheet,name in sheets:
   df=pd.DataFrame(translated[name],columns=[H.get(k,k) for k in tables[name][0]]);df.to_excel(writer,sheet_name=sheet[:31],index=False)
   ws=writer.sheets[sheet[:31]];ws.freeze_panes(1,0);ws.set_column(0,len(df.columns)-1,24);ws.autofilter(0,0,len(df),len(df.columns)-1)
 # Indonesian folder guides, retaining paths and filenames for compatibility.
 foldertext={
-'00_Start_Here':('Mulai di sini','Ringkasan seluruh hasil. Angka pada file lain dapat saling tumpang tindih; jangan dijumlahkan antarfile.'),
+'00_Start_Here':('Mulai di sini','Ringkasan sederhana: data yang sudah benar, perlu diperbaiki, calon data baru, data duplikat, dan data yang masih perlu diperiksa.'),
 '01_Update_Proposals':('Usulan pembaruan','Usulan perubahan nama atau lookup induk. Tinjau sebelum menyiapkan file upload yang hanya memuat Id dan kolom API yang disetujui. Kolom usulan kosong berarti tidak diubah, bukan dihapus.'),
 '02_Duplicate_Handling':('Penanganan duplikat','Pemetaan Id sumber ke Id target. Verifikasi seluruh referensi sebelum memindahkannya. File ini bukan daftar upload atau penghapusan.'),
 '03_Manual_Review':('Tinjauan manual','Daftar kerja cleansing, kandidat, serta temuan lintas tingkat. Temuan nama pada tingkat lain tidak membuktikan bahwa lokasinya sama. Semua ID kandidat lintas tingkat dikosongkan.'),
@@ -146,9 +166,41 @@ foldertext={
 '07_Audit':('Audit','Checksum berkas masukan dan hasil validasi teknis. Bukan data untuk diunggah ke Salesforce.')}
 for folder,(title,body) in foldertext.items():
  d=OUT/folder;d.mkdir(exist_ok=True);lines=['# '+title,'',body,'','| Berkas CSV | Jumlah baris data |','|---|---:|']
- for p in sorted(d.glob('*.csv')):lines.append(f'| [{p.name}]({p.name}) | {len(translated[p.name]):,} |')
+ for p in sorted(d.glob('*.csv')):
+  if p.name in translated:n=len(translated[p.name])
+  else:
+   with p.open(encoding='utf-8-sig',newline='') as f:n=sum(1 for _ in csv.DictReader(f))
+  lines.append(f'| [{p.name}]({p.name}) | {n:,} |')
  (d/'README.md').write_text('\n'.join(lines)+'\n')
-rootlines=['# Panduan penggunaan CSV','','Paket berasal dari snapshot data 29 Oktober 2026. Tinjauan lintas tingkat dan penerjemahan diperbarui pada 30 Oktober 2026. Tidak ada perubahan pada Salesforce.','','Mulai dari `00_Start_Here/Summary.csv`. Nama file, folder, nama wilayah, ID dan kolom API Salesforce dipertahankan. Judul kolom laporan, status, alasan, catatan, dan panduan diterjemahkan ke Bahasa Indonesia.','','| Folder | Kegunaan |','|---|---|']
+(start/'BACA_INI_DULU.md').write_text('''# Baca ini dulu
+
+Tujuannya adalah memastikan setiap lokasi dalam master mempunyai satu data Salesforce yang benar.
+
+## Arti angka dalam ringkasan
+
+- **Sudah benar**: tidak perlu diubah.
+- **Perlu diperbaiki**: data sudah ada, tetapi nama atau hubungan ke induknya perlu diperbaiki.
+- **Calon data baru**: lokasi ada di master, tetapi belum ditemukan data Salesforce yang dapat dipakai. Periksa lagi sebelum membuat data baru.
+- **Perlu diperiksa sebelum membuat data baru**: data mungkin sudah ada, tetapi ID atau hubungan induknya belum pasti. Jangan membuat data baru sebelum pemeriksaan selesai.
+- **Data duplikat**: pindahkan seluruh referensi ke data yang dipertahankan sebelum menonaktifkan atau menghapus duplikat.
+
+Gunakan `Ringkasan_Mencapai_Jumlah_Master.csv` untuk melihat cara mencapai jumlah master. Gunakan `Ringkasan_Record_Salesforce_Lain.csv` untuk melihat duplikat dan data lain yang masih perlu diperiksa.
+
+Urutan kerja: perbaiki data utama, tangani duplikat, selesaikan data yang belum jelas, lalu buat data baru yang benar-benar belum ada. Kerjakan dari Provinsi, Kota/Kabupaten, Kecamatan, lalu Kelurahan.
+
+Tidak ada file dalam paket ini yang boleh langsung diunggah tanpa pemeriksaan.
+''')
+(start/'README.md').write_text('''# Mulai di sini
+
+Mulai dari `BACA_INI_DULU.md`.
+
+- `Ringkasan_Mencapai_Jumlah_Master.csv`: data yang sudah benar, perlu diperbaiki, calon data baru, dan data yang masih perlu diperiksa sebelum membuat data baru.
+- `Ringkasan_Record_Salesforce_Lain.csv`: data duplikat dan data Salesforce lain yang masih perlu diperiksa.
+- `Summary.csv`: ringkasan teknis yang tetap disediakan sebagai referensi.
+
+Jangan langsung menjumlahkan angka dari file yang berbeda karena file tersebut dapat membahas kelompok data yang berbeda.
+''')
+rootlines=['# Panduan penggunaan CSV','','Paket berasal dari snapshot data 29 Oktober 2026. Tinjauan lintas tingkat dan penerjemahan diperbarui pada 30 Oktober 2026. Tidak ada perubahan pada Salesforce.','','Mulai dari `00_Start_Here/BACA_INI_DULU.md`. Dokumen tersebut menjelaskan tindakan dengan istilah sederhana. Nama wilayah, ID, dan kolom API Salesforce tetap dipertahankan.','','| Folder | Kegunaan |','|---|---|']
 for folder,(title,body) in foldertext.items():rootlines.append(f'| {folder} | {title}: {body} |')
 rootlines+=['','## Cara membaca temuan lintas tingkat','','- `Jenis_Bukti = TEMUAN_LINTAS_TINGKAT`: nama ditemukan pada tingkat wilayah lain. `Id_Target_Kandidat` selalu kosong.','- `Tingkat_Ditemukan`: provinsi, kota/kabupaten, kecamatan, atau kelurahan tempat nama muncul.','- `Sumber_Data = Master`: ditemukan dalam master wilayah.','- `Sumber_Data = Ekspor Salesforce`: ditemukan pada data Salesforce yang masih perlu diverifikasi.','- `Jumlah_Kemunculan` menghitung lokasi/nama yang berbeda, bukan jaminan kecocokan. `Contoh_Lokasi` dibatasi maksimal lima lokasi.','- Temuan di luar provinsi asal tetap ditampilkan sebagai bukti nama saja dan diberi catatan. Jangan menyamakan dua lokasi hanya berdasarkan namanya.','- Jika nama tidak ditemukan pada objek asal tetapi ditemukan pada tingkat lain, kandidat kemiripan lama diganti dengan bukti lintas tingkat tanpa ID.',
 '- `KANDIDAT_OBJEK_SAMA` masih dapat memiliki ID usulan dari hasil sebelumnya; temuan ini berbeda dari bukti lintas tingkat.','- `BELUM_DITEMUKAN` berarti tidak ada nama sama setelah normalisasi; kandidat berbasis kemiripan belum membuktikan pemetaan.','','Pencarian lintas tingkat menggunakan kesamaan nama setelah normalisasi huruf besar/kecil, spasi, tanda baca, dan awalan administratif yang sesuai. Tidak menggunakan kecocokan sebagian kata. Penelusuran ini tidak mengubah keputusan update atau pemindahan referensi duplikat.','','## Kamus kolom laporan','','Kolom API `Id`, `Name`, `Provinsi__c`, `Kota_Kabupaten__c`, dan `Kecamatan__c` tetap memakai nama asli. Kolom laporan lainnya menggunakan padanan berikut.','','| Kolom sebelumnya | Kolom Bahasa Indonesia |','|---|---|']
