@@ -1,4 +1,4 @@
-from regional_matching import ranked_candidates, district_context_candidates
+from regional_matching import ranked_candidates, district_context_candidates, city_context_candidates
 import csv,json,re,unicodedata,collections,pathlib,hashlib,zipfile,argparse
 import openpyxl
 import pandas as pd
@@ -130,6 +130,15 @@ for i,rows in enumerate(data):
                         'Candidate_Path':' | '.join(p),'Candidate_Name':p[-1],
                         'Reason':('Matches direct city evidence; conflicts with linked district' if conflict and direct_city and p[:2]==direct_city else reason),
                         '_path':p,'_level':i})
+  if path is None and i==1:
+   context=city_context_candidates(name,parent,names[2].get(norm(name,2),set()),names[3].get(norm(name,3),set()))
+   if context:
+    candidates=[c for c in candidates if not (c['Source_Id']==rid and c['Reason'].startswith('Kemiripan teks'))]
+    existing=[c for c in candidates if c['Source_Id']==rid]
+    # Preserve stronger exact/alias/core candidates and avoid repeated destinations.
+    context=[(cp,reason) for cp,reason in context if cp not in {c['_path'] for c in existing}]
+    for rank,(cp,reason) in enumerate(context,len(existing)+1):
+     candidates.append({'Object':objects[i],'Source_Id':rid,'Source_Name':name,'Rank':rank,'Similarity':'','Candidate_Path':' | '.join(cp),'Candidate_Name':cp[-1],'Reason':reason,'_path':cp,'_level':i})
   if (path is None or conflict) and i in (2,3):
    evidence_cities=set()
    if direct_city:evidence_cities.add(direct_city)

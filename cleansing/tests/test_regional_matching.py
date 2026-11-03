@@ -2,7 +2,7 @@ import sys
 from pathlib import Path
 import unittest
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'scripts'))
-from regional_matching import ranked_candidates, district_context_candidates
+from regional_matching import ranked_candidates, district_context_candidates, city_context_candidates
 
 
 class RegionalMatchingTests(unittest.TestCase):
@@ -69,6 +69,28 @@ class RegionalMatchingTests(unittest.TestCase):
         self.assertEqual(len(result), 2)
         self.assertTrue(all('Ambigu' in reason for _, reason in result))
         self.assertEqual(district_context_candidates('King', paths[0][:2], paths), [])
+
+    def test_babelan_city_from_master_district(self):
+        path = ('Jawa Barat', 'Kab. Bekasi', 'Babelan')
+        result = city_context_candidates('Babelan', path[:1], [path])
+        self.assertEqual(result[0][0], path[:2])
+        self.assertIn('Kecamatan: Jawa Barat | Kab. Bekasi | Babelan', result[0][1])
+        self.assertIn('Jika record dimaksudkan sebagai Kota/Kabupaten', result[0][1])
+        self.assertIn('Jika record sebenarnya dimaksudkan sebagai Kecamatan', result[0][1])
+        self.assertEqual(city_context_candidates('Babelan', None, [path]), [])
+        self.assertEqual(city_context_candidates('Babelan', ('Banten',), [path]), [])
+        self.assertEqual(city_context_candidates('Babel', path[:1], [path]), [])
+
+    def test_city_context_ambiguity_and_deduplication(self):
+        districts = [('Jawa Barat', 'Kab. Bekasi', 'Babelan'), ('Jawa Barat', 'Kab. Lain', 'Babelan')]
+        children = [('Jawa Barat', 'Kab. Bekasi', 'Babelan', 'Babelan')]
+        result = city_context_candidates('Babelan', ('Jawa Barat',), districts, children)
+        self.assertEqual(len(result), 2)
+        self.assertTrue(all('Ambigu' in reason for _, reason in result))
+        self.assertIn('Kecamatan:', result[0][1])
+        result = city_context_candidates('Babelan', ('Jawa Barat',), [], children)
+        self.assertEqual(result[0][0], children[0][:2])
+        self.assertIn('Kelurahan:', result[0][1])
 
 
 if __name__ == '__main__':

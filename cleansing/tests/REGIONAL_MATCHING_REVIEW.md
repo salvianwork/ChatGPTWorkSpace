@@ -95,3 +95,36 @@ Penerapan workbook memperbarui 2.536 sel pilihan/alasan pada 441 record
 15 sheet dengan urutan tetap, seluruh ID sumber dan input client tetap,
 13 sheet lainnya identik, dropdown tetap, tanpa formula atau ID final baru.
 Pilihan dan jumlah kandidat pada setiap record sesuai keluaran script.
+
+## Kota/Kabupaten yang namanya ditemukan pada tingkat lebih rendah
+
+Aturan hierarki juga berlaku bagi Kota/Kabupaten yang belum cocok: jika nama
+sumber ditemukan persis sebagai kecamatan atau kelurahan master dalam provinsi
+induk yang sudah diketahui, usulkan kota/kabupaten dari lokasi tersebut.
+Alasan menyebut tingkat dan lokasi sebenarnya serta dua kemungkinan maksud
+record. Nama persis, alias, dan nama inti yang sudah mempunyai kandidat tetap
+dipertahankan; kandidat hierarki ditambahkan tanpa menduplikasi tujuan. Kandidat
+yang hanya mirip ejaannya dihapus ketika bukti hierarki tersedia.
+
+Jika beberapa kota/kabupaten cocok, pertahankan semua dan beri label ambigu.
+Jangan menebak provinsi yang kosong atau memakai lokasi di provinsi berbeda.
+Skor kemiripan untuk inferensi hierarki dikosongkan; ID final tetap menunggu
+client. Ini juga mencakup record Kota/Kabupaten bernama seperti kelurahan,
+tanpa mengubah aturan Kecamatan dari temuan Kelurahan sebelumnya.
+
+Contoh Babelan: usulkan `Jawa Barat | Kab. Bekasi` dengan ID kandidat
+`a1oJ40000009JMEIA2` dan bukti `Kecamatan: Jawa Barat | Kab. Bekasi | Babelan`.
+Jika sebenarnya record dimaksudkan sebagai kecamatan, client perlu mengonfirmasi
+koreksi tingkat wilayah. Kab. Sumedang tidak lagi menjadi kandidat untuk Babelan.
+
+Validasi perluasan Kota/Kabupaten: 11 pengujian unit lulus dan kedua tahap
+pipeline selesai. Seluruh 28 CSV nonkandidat identik terhadap versi sebelumnya;
+rekomendasi tingkat sama berubah untuk 23 record. Baris kandidat/informasi review
+berubah dari 71.530 ke 71.528. Bukti lintas tingkat sama selain nomor urut, dan
+semua ID kandidat lintas tingkat tetap kosong. Banjar, Tangsel, dan Kingking
+mempertahankan rekomendasi utama; Babelan merekomendasikan Kab. Bekasi.
+
+Penerapan workbook: 211 sel jumlah/pilihan/alasan diperbarui pada 23 record.
+Validasi semua baris kandidat dan pilihan tampilan lulus. Seluruh 15 sheet tetap
+dengan urutan sama, jumlah record sumber tetap, 13 sheet lain identik, input
+client dan dropdown tetap, tanpa formula atau ID final baru.

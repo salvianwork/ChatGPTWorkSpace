@@ -98,3 +98,31 @@ def district_context_candidates(name, parent, kelurahan_paths):
         found = {p: reason + ' Ambigu: terdapat lebih dari satu kecamatan induk dalam kota/kabupaten ini.'
                  for p, reason in found.items()}
     return list(found.items())
+
+
+def city_context_candidates(name, parent, district_paths, kelurahan_paths=()):
+    """Suggest cities from exact lower-level names within the known province.
+
+    Preserve every distinct city when ambiguous; never infer the province.
+    These proposals do not determine whether the source's level is correct.
+    """
+    if parent is None:
+        return []
+    found = {}
+    for level, paths, label in [(2, district_paths, 'Kecamatan'), (3, kelurahan_paths, 'Kelurahan')]:
+        for path in sorted(paths):
+            if path[:1] != parent or normalize(path[-1], level) != normalize(name, level):
+                continue
+            city = path[:2]
+            reason = (
+                'Nama sumber ditemukan sebagai ' + label + ': ' + ' | '.join(path) + '. '
+                'Jika record dimaksudkan sebagai Kota/Kabupaten, rekomendasi berdasarkan '
+                'hierarki master adalah ' + path[1] + '. Jika record sebenarnya dimaksudkan sebagai '
+                + label + ', konfirmasikan koreksi tingkat wilayah dan lokasinya. '
+                'ID tujuan final tidak ditetapkan otomatis; perlu dikonfirmasi.'
+            )
+            found.setdefault(city, reason)
+    if len(found) > 1:
+        found = {p: reason + ' Ambigu: terdapat lebih dari satu kota/kabupaten dalam provinsi ini.'
+                 for p, reason in found.items()}
+    return list(found.items())
