@@ -89,18 +89,16 @@ for lev,rows in enumerate(allrows):
    # No exact normalized master name at any level; do not imply fuzzy candidates are confirmed matches.
    cr={'Object':OBJECTS[lev],'Source_Id':x['Source_Id'],'Source_Name':x['Source_Name'],'Rank':'','Similarity':'','Candidate_Path':'','Candidate_Name':'','Reason':'Tidak ditemukan nama yang sama setelah normalisasi pada tingkat lain dalam master atau ekspor Salesforce. Kandidat berbasis kemiripan, bila ada, tetap perlu ditinjau.','Candidate_Target_Id':'','Evidence_Type':'BELUM_DITEMUKAN','Found_Level':'','Data_Source':'Master dan ekspor Salesforce','Found_Count':'0','Location_Examples':'','Parent_Context':''}
    nohit.append(cr)
-# Put cross-level findings before the older same-object fuzzy suggestions for each source.
+# Keep ranked same-object candidates before informational cross-level findings.
 order={x['Source_Id']:(lev,j) for lev,rows in enumerate(allrows) for j,x in enumerate(rows)}
-cross_ids={x['Source_Id'] for x in cross}
-suppress={x['Source_Id'] for lev,x in unmatched if x['Source_Id'] in cross_ids and norm(x['Source_Name'],lev) not in indices[lev]}
-suppressed=sum(x['Source_Id'] in suppress for x in candidates)
-candidates=[x for x in candidates if x['Source_Id'] not in suppress]
+# Cross-level evidence must not suppress same-object review candidates.
+suppressed=0
 candidates=cross+nohit+candidates
 seen=set();dedup=[]
 for x in candidates:
  key=(x['Object'],x['Source_Id'],x['Evidence_Type'],x['Candidate_Path'],x['Found_Level'],x['Data_Source'],x['Reason'])
  if key not in seen:seen.add(key);dedup.append(x)
-candidates=sorted(dedup,key=lambda x:(order[x['Source_Id']],{'TEMUAN_LINTAS_TINGKAT':0,'BELUM_DITEMUKAN':1,'KANDIDAT_OBJEK_SAMA':2}[x['Evidence_Type']],x['Found_Level'],x['Data_Source'],int(x['Rank'] or 0)))
+candidates=sorted(dedup,key=lambda x:(order[x['Source_Id']],{'KANDIDAT_OBJEK_SAMA':0,'TEMUAN_LINTAS_TINGKAT':1,'BELUM_DITEMUKAN':2}[x['Evidence_Type']],x['Found_Level'],x['Data_Source'],int(x['Rank'] or 0)))
 ranks=collections.Counter()
 for x in candidates:
  ranks[x['Source_Id']]+=1;x['Rank']=str(ranks[x['Source_Id']])
@@ -202,7 +200,7 @@ Jangan langsung menjumlahkan angka dari file yang berbeda karena file tersebut d
 ''')
 rootlines=['# Panduan penggunaan CSV','','Paket berasal dari snapshot data 29 Oktober 2026. Tinjauan lintas tingkat dan penerjemahan diperbarui pada 30 Oktober 2026. Tidak ada perubahan pada Salesforce.','','Mulai dari `00_Start_Here/BACA_INI_DULU.md`. Dokumen tersebut menjelaskan tindakan dengan istilah sederhana. Nama wilayah, ID, dan kolom API Salesforce tetap dipertahankan.','','| Folder | Kegunaan |','|---|---|']
 for folder,(title,body) in foldertext.items():rootlines.append(f'| {folder} | {title}: {body} |')
-rootlines+=['','## Cara membaca temuan lintas tingkat','','- `Jenis_Bukti = TEMUAN_LINTAS_TINGKAT`: nama ditemukan pada tingkat wilayah lain. `Id_Target_Kandidat` selalu kosong.','- `Tingkat_Ditemukan`: provinsi, kota/kabupaten, kecamatan, atau kelurahan tempat nama muncul.','- `Sumber_Data = Master`: ditemukan dalam master wilayah.','- `Sumber_Data = Ekspor Salesforce`: ditemukan pada data Salesforce yang masih perlu diverifikasi.','- `Jumlah_Kemunculan` menghitung lokasi/nama yang berbeda, bukan jaminan kecocokan. `Contoh_Lokasi` dibatasi maksimal lima lokasi.','- Temuan di luar provinsi asal tetap ditampilkan sebagai bukti nama saja dan diberi catatan. Jangan menyamakan dua lokasi hanya berdasarkan namanya.','- Jika nama tidak ditemukan pada objek asal tetapi ditemukan pada tingkat lain, kandidat kemiripan lama diganti dengan bukti lintas tingkat tanpa ID.',
+rootlines+=['','## Cara membaca temuan lintas tingkat','','- `Jenis_Bukti = TEMUAN_LINTAS_TINGKAT`: nama ditemukan pada tingkat wilayah lain. `Id_Target_Kandidat` selalu kosong.','- `Tingkat_Ditemukan`: provinsi, kota/kabupaten, kecamatan, atau kelurahan tempat nama muncul.','- `Sumber_Data = Master`: ditemukan dalam master wilayah.','- `Sumber_Data = Ekspor Salesforce`: ditemukan pada data Salesforce yang masih perlu diverifikasi.','- `Jumlah_Kemunculan` menghitung lokasi/nama yang berbeda, bukan jaminan kecocokan. `Contoh_Lokasi` dibatasi maksimal lima lokasi.','- Temuan di luar provinsi asal tetap ditampilkan sebagai bukti nama saja dan diberi catatan. Jangan menyamakan dua lokasi hanya berdasarkan namanya.','- Jika nama tidak ditemukan pada objek asal tetapi ditemukan pada tingkat lain, kandidat pada tingkat yang sama tetap ditampilkan; bukti lintas tingkat tidak memiliki ID tujuan.',
 '- `KANDIDAT_OBJEK_SAMA` masih dapat memiliki ID usulan dari hasil sebelumnya; temuan ini berbeda dari bukti lintas tingkat.','- `BELUM_DITEMUKAN` berarti tidak ada nama sama setelah normalisasi; kandidat berbasis kemiripan belum membuktikan pemetaan.','','Pencarian lintas tingkat menggunakan kesamaan nama setelah normalisasi huruf besar/kecil, spasi, tanda baca, dan awalan administratif yang sesuai. Tidak menggunakan kecocokan sebagian kata. Penelusuran ini tidak mengubah keputusan update atau pemindahan referensi duplikat.','','## Kamus kolom laporan','','Kolom API `Id`, `Name`, `Provinsi__c`, `Kota_Kabupaten__c`, dan `Kecamatan__c` tetap memakai nama asli. Kolom laporan lainnya menggunakan padanan berikut.','','| Kolom sebelumnya | Kolom Bahasa Indonesia |','|---|---|']
 rootlines += [f'| {k} | {v} |' for k,v in sorted(H.items())]
 (OUT/'README.md').write_text('\n'.join(rootlines)+'\n')

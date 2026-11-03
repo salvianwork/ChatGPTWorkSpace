@@ -1,4 +1,5 @@
-import csv,json,re,unicodedata,difflib,collections,pathlib,hashlib,zipfile,argparse
+from regional_matching import ranked_candidates
+import csv,json,re,unicodedata,collections,pathlib,hashlib,zipfile,argparse
 import openpyxl
 import pandas as pd
 from output_layout import csv_folder, write_guides
@@ -58,8 +59,7 @@ def match(i,name,parent):
  return None,'AMBIGUOUS_NORMALIZATION' if vals else 'NO_MATCH_IN_PARENT'
 def suggestion(i,name,parent):
  pool=children[i].get(parent,[]) if parent is not None else list(names[i].get(norm(name,i),[]))
- scored=sorted(((round(100*difflib.SequenceMatcher(None,norm(name,i),norm(p[-1],i)).ratio(),2),p) for p in pool),key=lambda x:(-x[0],x[1]))
- return scored[:3]
+ return ranked_candidates(i,name,parent,pool)
 for i,rows in enumerate(data):
  res=[];mapped={}
  for row in rows:
@@ -123,12 +123,12 @@ for i,rows in enumerate(data):
    sugg=suggestion(i,name,parent)
    if conflict and direct_city and i==3:
     alternatives=[p for p in names[3].get(norm(name,3),set()) if p[:2]==direct_city]
-    sugg=list(dict.fromkeys(sugg+[(100.0,p) for p in sorted(alternatives)]))
-   for rank,(score,p) in enumerate(sugg,1):
-    if score>=50:
+    sugg += [(0,100.0,p,"Matches direct city evidence; conflicts with linked district") for p in sorted(alternatives) if p not in {item[2] for item in sugg}]
+   for rank,(priority,score,p,reason) in enumerate(sugg,1):
+    if priority<3 or score>=50:
      candidates.append({'Object':objects[i],'Source_Id':rid,'Source_Name':name,'Rank':rank,'Similarity':score,
                         'Candidate_Path':' | '.join(p),'Candidate_Name':p[-1],
-                        'Reason':('Matches direct city evidence; conflicts with linked district' if conflict and direct_city and p[:2]==direct_city else 'Same linked or recovered parent' if parent is not None else 'Exact normalized name; parent unresolved'),
+                        'Reason':('Matches direct city evidence; conflicts with linked district' if conflict and direct_city and p[:2]==direct_city else reason),
                         '_path':p,'_level':i})
   if (path is None or conflict) and i in (2,3):
    evidence_cities=set()
