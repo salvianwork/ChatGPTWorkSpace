@@ -71,3 +71,30 @@ def ranked_candidates(level, name, parent, paths):
     candidates.sort(key=lambda item: (item[0], -item[1], item[2]))
     # Retain all exact/alias/core evidence, plus at most three fuzzy suggestions.
     return [c for c in candidates if c[0] < 3] + [c for c in candidates if c[0] == 3][:3]
+
+
+def district_context_candidates(name, parent, kelurahan_paths):
+    """Suggest a district from an exact child name in the resolved city.
+
+    This is a hypothesis about the intended district, not a match to the source
+    record's level. Keep every matching district when the hierarchy is ambiguous.
+    """
+    if parent is None:
+        return []
+    found = {}
+    for path in sorted(kelurahan_paths):
+        if path[:2] != parent or normalize(path[-1], 3) != normalize(name, 3):
+            continue
+        district = path[:3]
+        reason = (
+            'Nama sumber ditemukan sebagai Kelurahan: ' + ' | '.join(path) + '. '
+            'Jika record dimaksudkan sebagai Kecamatan, rekomendasi berdasarkan '
+            'induk kelurahan adalah ' + path[2] + '. Jika record dimaksudkan sebagai '
+            'Kelurahan, konfirmasikan koreksi tingkat wilayah dan lokasinya. '
+            'ID tujuan final tidak ditetapkan otomatis; perlu dikonfirmasi.'
+        )
+        found.setdefault(district, reason)
+    if len(found) > 1:
+        found = {p: reason + ' Ambigu: terdapat lebih dari satu kecamatan induk dalam kota/kabupaten ini.'
+                 for p, reason in found.items()}
+    return list(found.items())

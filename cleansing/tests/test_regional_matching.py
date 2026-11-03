@@ -2,7 +2,7 @@ import sys
 from pathlib import Path
 import unittest
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'scripts'))
-from regional_matching import ranked_candidates
+from regional_matching import ranked_candidates, district_context_candidates
 
 
 class RegionalMatchingTests(unittest.TestCase):
@@ -52,6 +52,23 @@ class RegionalMatchingTests(unittest.TestCase):
         result = ranked_candidates(1, 'Kota Banjar', None, [('Jawa Barat', 'Kota Banjar')])
         self.assertEqual(result[0][0], 0)
         self.assertIn('induk belum diketahui', result[0][3])
+
+    def test_kingking_district_from_master_child(self):
+        path = ('Jawa Timur', 'Kab. Tuban', 'Tuban', 'Kingking')
+        result = district_context_candidates('Kingking', path[:2], [path])
+        self.assertEqual(result[0][0], path[:3])
+        self.assertIn('Kelurahan: Jawa Timur | Kab. Tuban | Tuban | Kingking', result[0][1])
+        self.assertIn('Jika record dimaksudkan sebagai Kecamatan', result[0][1])
+        self.assertIn('Jika record dimaksudkan sebagai Kelurahan', result[0][1])
+        self.assertEqual(district_context_candidates('Kingking', None, [path]), [])
+        self.assertEqual(district_context_candidates('Kingking', ('Banten', 'Kab. Tuban'), [path]), [])
+
+    def test_context_ambiguity_and_exact_name(self):
+        paths = [('Jawa Timur', 'Kab. Tuban', d, 'Kingking') for d in ['Tuban', 'Lain']]
+        result = district_context_candidates('Kel. Kingking', paths[0][:2], paths)
+        self.assertEqual(len(result), 2)
+        self.assertTrue(all('Ambigu' in reason for _, reason in result))
+        self.assertEqual(district_context_candidates('King', paths[0][:2], paths), [])
 
 
 if __name__ == '__main__':

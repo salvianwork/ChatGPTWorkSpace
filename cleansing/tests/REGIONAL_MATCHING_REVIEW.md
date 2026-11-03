@@ -62,3 +62,36 @@ serta rekomendasi pertama untuk record Banjar dan Tangsel yang dibahas.
   `a1oJ40000009JP0IAM`.
 - Seluruh workbook, ZIP, CSV sumber, dan keluaran client dalam repository
   tetap tidak berubah. Keluaran percobaan disimpan di `/tmp`.
+
+## Kecamatan yang namanya ditemukan sebagai kelurahan
+
+Jika kecamatan yang belum cocok mempunyai nama yang persis cocok setelah
+normalisasi dengan kelurahan master dalam kabupaten/kota induk yang sudah
+teridentifikasi, rekomendasikan kecamatan induk kelurahan tersebut untuk review.
+Alasannya menyebut lokasi kelurahan dan dua kemungkinan: record memang dimaksudkan
+sebagai kecamatan, atau sebenarnya kelurahan yang memerlukan koreksi tingkat.
+Kandidat fuzzy yang hanya mirip ejaannya tidak ditampilkan untuk kasus ini.
+Semua kecamatan induk yang cocok dipertahankan jika ambigu. Induk yang belum
+diketahui atau berbeda tidak dipakai untuk membuat rekomendasi ini.
+
+Ini tetap hipotesis maksud record, bukan kecocokan nama kecamatan. Karena itu,
+skor kemiripan dikosongkan, status mapping tidak diubah, dan ID final client
+menunggu keputusan. ID pada pilihan kandidat merujuk kecamatan yang diusulkan;
+ID pada bukti `TEMUAN_LINTAS_TINGKAT` tetap kosong.
+
+Contoh: Kecamatan Kingking pada Kabupaten Tuban mendapatkan rekomendasi
+Kecamatan Tuban (`a1pJ40000008Y6BIAU`), disertai bukti
+`Jawa Timur | Kab. Tuban | Tuban | Kingking` pada tingkat Kelurahan.
+Bangilan tidak lagi direkomendasikan untuk record ini.
+
+Validasi perluasan ini: 9 pengujian unit lulus. Dua pipeline lengkap berhasil;
+seluruh 28 CSV nonkandidat identik. Rekomendasi tingkat sama berubah untuk 403
+record; jumlah baris kandidat/informasi review berubah dari 71.502 ke 71.530.
+Bukti lintas tingkat tetap sama selain nomor urut, dan seluruh ID kandidat
+lintas tingkat tetap kosong. Banjar dan Tangsel mempertahankan rekomendasi utama.
+
+Penerapan workbook memperbarui 2.536 sel pilihan/alasan pada 441 record
+(termasuk perubahan rekomendasi untuk 403 record). Validasi workbook lulus:
+15 sheet dengan urutan tetap, seluruh ID sumber dan input client tetap,
+13 sheet lainnya identik, dropdown tetap, tanpa formula atau ID final baru.
+Pilihan dan jumlah kandidat pada setiap record sesuai keluaran script.

@@ -26,10 +26,14 @@ def check(old, new):
         groups[row['Id_Sumber']].append(row)
         if row['Jenis_Bukti'] == 'TEMUAN_LINTAS_TINGKAT':
             assert not row['Id_Target_Kandidat']
-    for rid, target in [('a1oJ40000009JKeIAM', 'Kota Banjar'), ('a1ofC000000PZnOQAW', 'Kota Tangerang Selatan')]:
+    for rid, target in [('a1oJ40000009JKeIAM', 'Kota Banjar'), ('a1ofC000000PZnOQAW', 'Kota Tangerang Selatan'), ('a1pJ40000008XLbIAM', 'Tuban')]:
         assert groups[rid][0]['Nama_Kandidat'] == target
         assert groups[rid][0]['Jenis_Bukti'] == 'KANDIDAT_OBJEK_SAMA'
         print(rid, 'first recommendation:', target, groups[rid][0]['Id_Target_Kandidat'])
+    kingking = groups['a1pJ40000008XLbIAM']
+    assert not any(r['Nama_Kandidat'] == 'Bangilan' for r in kingking)
+    assert 'Kelurahan: Jawa Timur | Kab. Tuban | Tuban | Kingking' in kingking[0]['Alasan']
+    assert kingking[0]['Kemiripan'] == ''
     # Cross-level evidence remains exactly the same apart from its display rank.
     def evidence(rows):
         return sorted(tuple(sorted((k, v) for k, v in r.items() if k != 'Urutan'))

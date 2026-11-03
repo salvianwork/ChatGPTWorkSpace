@@ -61,8 +61,6 @@ for lev in range(4):
  indices.append(ix);sf.append(sx)
 old=tables['Review_candidates.csv'][1];candidates=[];removed=0
 for x in old:
- if x['Reason'].startswith('Source district name matches a master kelurahan'):
-  removed+=1;continue
  x=dict(x);x.update(Evidence_Type='KANDIDAT_OBJEK_SAMA',Found_Level=LEVELS[OBJECTS.index(x['Object'])],Data_Source='Master',Found_Count='',Location_Examples='',Parent_Context='')
  candidates.append(x)
 cross=[];unmatched=[];nohit=[]

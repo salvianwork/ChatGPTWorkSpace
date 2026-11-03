@@ -1,4 +1,4 @@
-from regional_matching import ranked_candidates
+from regional_matching import ranked_candidates, district_context_candidates
 import csv,json,re,unicodedata,collections,pathlib,hashlib,zipfile,argparse
 import openpyxl
 import pandas as pd
@@ -143,7 +143,13 @@ for i,rows in enumerate(data):
     else:
      dest=cp;reason='Exact kelurahan name within a city supported by source evidence; confirm district and conflicting city links'
     if dest not in [x[1] for x in extra]:extra.append((100.0,dest,reason))
-   for rank,(score,cp,reason) in enumerate(extra,4):
+   if i==2:
+    context=district_context_candidates(name,parent,names[3].get(norm(name,3),set()))
+    if context:
+     # Exact hierarchy evidence is stronger than unrelated fuzzy district names.
+     candidates=[c for c in candidates if not (c['Source_Id']==rid and c['Reason'].startswith('Kemiripan teks'))]
+     extra=[('',p,reason) for p,reason in context]
+   for rank,(score,cp,reason) in enumerate(extra,1 if i==2 else 4):
     candidates.append({'Object':objects[i],'Source_Id':rid,'Source_Name':name,'Rank':rank,'Similarity':score,'Candidate_Path':' | '.join(cp),'Candidate_Name':cp[-1],'Reason':reason,'_path':cp,'_level':i})
   res.append(out);mapped[rid]=out
  results.append(res);maps.append(mapped)
