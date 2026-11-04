@@ -1,0 +1,22 @@
+{
+  "checks": {
+    "input_record_coverage": true,
+    "unique_source_ids_per_object": true,
+    "province_all_valid": true,
+    "all_target_ids_verified": true,
+    "duplicate_targets_are_canonical": true,
+    "review_excluded_from_update_proposals": true,
+    "every_deterministic_target_has_parent_target": true,
+    "no_duplicate_repoint_cycles": true,
+    "workbook_has_no_formulas": true
+  },
+  "records_processed": 91306,
+  "canonical_update_proposals": 8595,
+  "duplicate_repoint_proposals": 3105,
+  "kelurahan_parent_conflicts": 11181,
+  "unverified_master_ids": 4460,
+  "reproducibility": {
+    "csv_files_compared": 27,
+    "all_identical": true
+  }
+}
