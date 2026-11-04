@@ -260,3 +260,65 @@ filter diperluas mengikuti tambahan kolom/baris. Sheet lain tidak diubah.
 
 Penerapan ulang pada workbook yang sudah diperbarui menghasilkan nol perubahan
 sel kandidat maupun metadata; kolom tambahan tidak terduplikasi.
+
+## Tampilan client yang disederhanakan (versi terbaru)
+
+Bagian ini menggantikan susunan 44 kolom dan metadata terpisah pada bagian
+sebelumnya. Aturan pencocokan, urutan kandidat, dan keputusan mapping tetap sama;
+perubahan hanya pada penyajian workbook.
+
+DATA BELUM JELAS sekarang mempunyai 35 kolom:
+
+- A:K: informasi sumber dan penjelasan singkat yang mudah dibaca.
+- L: jumlah rekomendasi.
+- M:AA: tiga kelompok pilihan. Setiap kelompok hanya mempunyai Nama, Lokasi,
+  ID Salesforce, Status, dan Catatan.
+- AB:AI: delapan kolom input client yang semula berada di Y:AF. Nilai, style,
+  nama kolom, serta pilihan dropdown tetap dipertahankan; posisi dropdown
+  dipindahkan bersama kolom Keputusan_Client.
+
+Setiap pilihan hanya mempunyai satu kolom ID. ID yang sesuai lokasi ditampilkan
+lebih dahulu. Jika belum ada ID tersebut, ID yang masih perlu diperiksa tetap
+ditampilkan dengan status yang jelas. Jika ada beberapa ID, semuanya disimpan
+pada satu kolom dan statusnya meminta client memilih satu ID. Bila belum ada ID,
+kolom ID kosong dan catatan menjelaskan pemeriksaan yang perlu dilakukan.
+ID final tetap tidak diisi otomatis.
+
+Kolom Jenis_Rekomendasi, Status_Verifikasi_ID, Alasan_Verifikasi_ID, dan
+ID_Master_Perlu_Verifikasi tidak lagi diulang dalam workbook. Informasi yang
+penting digabung menjadi Status dan Catatan di samping nama dan ID pilihan.
+Informasi teknis lengkap tetap tersedia pada CSV pipeline untuk audit dan
+pengujian, bukan ditampilkan sebagai kolom tambahan untuk client.
+
+PILIHAN MAPPING berkurang dari 20 menjadi 12 kolom, dengan satu kelompok
+Nama/Lokasi/ID/Status/Catatan pada setiap baris. Nama objek Salesforce juga
+menggunakan sebutan yang mudah dibaca. Semua 79.685 baris tetap dipertahankan,
+termasuk bukti nama di tingkat wilayah lain yang tetap tanpa ID rekomendasi.
+
+Contoh kalimat pengganti:
+
+> Nama dan lokasi rekomendasi sesuai master. Client perlu memastikan ID yang
+> akan digunakan.
+
+Status seperti "Hubungan wilayah perlu dicek", "Kabupaten/kota berbeda", dan
+"ID belum dipastikan" menggantikan kode teknis yang panjang. Catatan tidak lagi
+menggabungkan beberapa kalimat teknis yang menjelaskan hal yang sama. Bukti
+nama, lokasi, provinsi, dan kemungkinan perbedaan tingkat wilayah tetap ada.
+
+`regional_client_display.py` menjadi satu sumber untuk menyusun kalimat dan
+kolom pada kedua sheet. Helper workbook menerima susunan lama 32/44 kolom
+serta susunan baru 35 kolom. Pilihan dan format dropdown tidak diubah, hanya
+referensi selnya. Workbook yang berisi formula pada kedua kelompok sumber/input
+perlu ditinjau sebelum pemindahan kolom; helper menolak memindahkan formula
+secara diam-diam. Workbook pada tugas ini tidak mempunyai formula tersebut.
+
+Validasi versi ini: 29 pengujian unit lulus. Seluruh 79.685 catatan rekomendasi
+lulus pemeriksaan bahasa sederhana. Validator workbook membandingkan setiap ID
+sumber, nama sumber, nilai/style input client, dropdown, seluruh rekomendasi
+terhadap CSV, jumlah/urutan baris dan sheet, serta 13 sheet lain yang tetap
+identik. Kolom ID akhir tidak diisi otomatis dan tidak ada formula baru.
+
+Penerapan ulang pada susunan baru menghasilkan nol perubahan nilai dan tidak
+menambah kolom atau style. Semua jumlah dan urutan baris tetap sama. Pemeriksaan
+seluruh sheet memastikan tidak ada formula yang bergantung pada kolom yang
+dipindahkan. Pilihan dan format dropdown tetap sama setelah berpindah ke AB.

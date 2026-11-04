@@ -1,7 +1,7 @@
 """Apply validated review CSV to the regional workbook, preserving client inputs.
 
 Only DATA BELUM JELAS and PILIHAN MAPPING are edited. Review metadata columns
-are appended, so existing client-input columns and dropdown references stay put.
+are grouped beside each choice. Client inputs move together with their dropdown references.
 """
 import argparse
 from collections import defaultdict
@@ -16,8 +16,9 @@ import tempfile
 from zipfile import ZipFile
 
 from lxml import etree as E
-from openpyxl.utils import get_column_letter, column_index_from_string
+from openpyxl.utils import get_column_letter, column_index_from_string, range_boundaries as openpyxl_range
 from regional_review import REVIEW_FIELDS
+from regional_client_display import CHOICE_HEADERS, MAPPING_HEADERS, client_candidate, mapping_row, source_text
 
 NS = {'m': 'http://schemas.openxmlformats.org/spreadsheetml/2006/main'}
 TAG = '{' + NS['m'] + '}'
@@ -48,7 +49,7 @@ def apply(workbook, candidates, backup):
         else:
             assert not d['Id_Target_Kandidat']
     shutil.copy2(workbook, backup)
-    existing_changes=metadata_changes=changed_records=metadata_records=0
+    existing_changes=changed_records=0
     with ZipFile(backup) as z:
         # Assert the expected workbook layout rather than silently editing another sheet.
         wb=E.fromstring(z.read('xl/workbook.xml'))
@@ -81,78 +82,120 @@ def apply(workbook, candidates, backup):
             if i not in wrapmap:
                 xf=deepcopy(xfs[i]);al=xf.find('m:alignment',NS)
                 if al is None:al=E.SubElement(xf,TAG+'alignment')
-                al.set('wrapText','1');xf.set('applyAlignment','1');wrapmap[i]=len(xfs);xfs.append(xf)
+                al.set('wrapText','1');xf.set('applyAlignment','1')
+                existing=next((j for j,old in enumerate(xfs) if E.tostring(old)==E.tostring(xf)),None)
+                if existing is None:existing=len(xfs);xfs.append(xf)
+                wrapmap[i]=existing
             c.set('s',str(wrapmap[i]))
         data=E.fromstring(z.read('xl/worksheets/sheet14.xml'));sd=data.find('m:sheetData',NS)
         header=sd[0];headers=[value(c) for c in header]
-        assert len(headers) in (32,44), headers
-        assert headers[1]=='Id_Sumber' and headers[11]=='Jumlah_Pilihan_Mapping' and headers[24]=='Keputusan_Client' and headers[31]=='Tanggal_Konfirmasi'
-        if len(headers)==44:assert headers[32:]==EXTRA_HEADERS
-        colstyles={}
-        for row in list(sd)[1:]:
-            for c in row:colstyles.setdefault(re.sub(r'\d','',c.get('r')),c.get('s'))
-        def assign(row,col,v,default_style):
-            ref=get_column_letter(col)+row.get('r');c=next((c for c in row if c.get('r')==ref),None)
-            if value(c)==v:return False
-            if c is None:
-                c=E.Element(TAG+'c',r=ref)
-                if default_style is not None:c.set('s',default_style)
-                pos=next((i for i,cc in enumerate(row) if column_index_from_string(re.sub(r'\d','',cc.get('r')))>col),len(row))
-                row.insert(pos,c)
-            put(c,v);wrap(c);return True
-        if len(headers)==32:
-            for col,text in enumerate(EXTRA_HEADERS,33):assign(header,col,text,header[-1].get('s'))
-            cols=data.find('m:cols',NS)
-            for col in range(33,45):
-                E.SubElement(cols,TAG+'col',min=str(col),max=str(col),width='75' if (col-33)%4==2 else '35',customWidth='1')
-        for row in list(sd)[1:]:
-            cells={re.sub(r'\d','',c.get('r')):c for c in row};rid=value(cells['B']);source_name=value(cells['C']);cs=groups[rid]
-            assert all(d['Nama_Sumber']==source_name for d in cs),(rid,source_name)
-            vals=[len(cs)]
-            for i in range(3):vals += [(cs[i][k] or None) for k in ['Nama_Kandidat','Hierarki_Kandidat','Id_Target_Kandidat','Alasan']] if i<len(cs) else [None]*4
-            changed=False;meta=False
+        assert len(headers) in (32,44,35), headers
+        compact=len(headers)==35
+        client_start=28 if compact else 25
+        assert headers[1]=='Id_Sumber'
+        assert headers[client_start-1]=='Keputusan_Client' and headers[client_start+6]=='Tanggal_Konfirmasi'
+        if compact:
+            assert headers[11]=='Jumlah_Rekomendasi' and headers[12:27]==CHOICE_HEADERS
+        elif len(headers)==44:
+            assert headers[32:]==EXTRA_HEADERS
+        assert not data.findall('.//m:f',NS), 'Workbook contains formulas; review column references before changing its layout.'
+        def colnum(c):return column_index_from_string(re.sub(r'\d','',c.get('r')))
+        old_cols=data.find('m:cols',NS)
+        settings={i:dict(c.attrib) for c in old_cols for i in range(int(c.get('min')),int(c.get('max'))+1)}
+        first_row=sd[1];body_styles={colnum(c):c.get('s') for c in first_row}
+        name_style=body_styles.get(13,body_styles.get(1));location_style=body_styles.get(14,name_style)
+        id_style=body_styles.get(15,name_style);note_style=body_styles.get(16,name_style)
+        header_style=header[0].get('s')
+        for row in sd:
+            row_id=row.get('r');is_header=row_id=='1'
+            cells={colnum(c):c for c in row}
+            protected=[deepcopy(c) for c in row if colnum(c)<=11]
+            clients=[deepcopy(c) for c in row if client_start<=colnum(c)<client_start+8]
+            cs=[] if is_header else groups[value(cells[2])]
+            if not is_header:
+                assert all(d['Nama_Sumber']==value(cells[3]) for d in cs)
+                new_notes=source_text(value(cells[9]),value(cells[10]),value(cells.get(6)),value(cells.get(8)),value(cells.get(11)))
+                for col,v in zip([9,10,11],new_notes):
+                    old=next((c for c in protected if colnum(c)==col),None)
+                    if old is None and v is not None:
+                        old=E.Element(TAG+'c',r=get_column_letter(col)+row_id)
+                        if note_style is not None:old.set('s',note_style)
+                        protected.append(old);protected.sort(key=colnum)
+                    if old is not None and value(old)!=v:put(old,v);wrap(old)
+            for c in list(row):row.remove(c)
+            for c in protected:row.append(c)
+            vals=['Jumlah_Rekomendasi']+CHOICE_HEADERS if is_header else [len(cs)]+[v for i in range(3) for v in (client_candidate(cs[i]) if i<len(cs) else ['']*5)]
+            row_changed=False
             for col,v in enumerate(vals,12):
-                result=assign(row,col,v,colstyles.get(get_column_letter(col),colstyles.get('P')))
-                existing_changes+=result;changed |= result
-            for i in range(3):
-                for j,key in enumerate(METADATA):
-                    v=(cs[i][key] or None) if i<len(cs) else None
-                    result=assign(row,33+i*4+j,v,colstyles.get('P'))
-                    metadata_changes+=result;meta |= result
-            changed_records+=changed;metadata_records+=meta
-            if row.get('spans'):row.set('spans','1:44')
-        if header.get('spans'):header.set('spans','1:44')
+                v=v if v!='' else None
+                old=cells.get(col)
+                if value(old)!=v:existing_changes+=1;row_changed=True
+                if v is None:continue
+                c=E.SubElement(row,TAG+'c',r=get_column_letter(col)+row_id)
+                style=header_style if is_header else [name_style,location_style,id_style,name_style,note_style][(col-13)%5] if col>=13 else name_style
+                if style is not None:c.set('s',style)
+                put(c,v);wrap(c)
+            if not is_header:changed_records+=row_changed
+            for c in clients:
+                c.set('r',get_column_letter(colnum(c)-client_start+28)+row_id);row.append(c)
+            if row.get('spans'):row.set('spans','1:35')
+        # Keep source-column widths and client formats; replace only the recommendation layout.
+        for c in list(old_cols):
+            if int(c.get('min'))>=12:old_cols.remove(c)
+            elif int(c.get('max'))>11:c.set('max','11')
+        widths=[20]+[30,55,26,32,85]*3
+        for col,width in enumerate(widths,12):E.SubElement(old_cols,TAG+'col',min=str(col),max=str(col),width=str(width),customWidth='1')
+        for offset in range(8):
+            attrib=settings.get(client_start+offset,{'width':'30','customWidth':'1'}).copy()
+            attrib.update(min=str(28+offset),max=str(28+offset));E.SubElement(old_cols,TAG+'col',attrib=attrib)
+        # The existing list options remain byte-for-byte the same; only their target cells move.
+        dv=data.find('m:dataValidations',NS)
+        if dv is not None:
+            for validation in dv:
+                ranges=[]
+                for area in validation.get('sqref').split():
+                    bounds=openpyxl_range(area)
+                    assert client_start<=bounds[0]<=bounds[2]<client_start+8
+                    ranges.append(get_column_letter(bounds[0]-client_start+28)+str(bounds[1])+':'+get_column_letter(bounds[2]-client_start+28)+str(bounds[3]))
+                validation.set('sqref',' '.join(ranges))
         last=sd[-1].get('r')
-        for key in ['dimension','autoFilter']:data.find('m:'+key,NS).set('ref','A1:AR'+last)
+        for key in ['dimension','autoFilter']:data.find('m:'+key,NS).set('ref','A1:AI'+last)
         raw=z.read('xl/worksheets/sheet15.xml');start=raw.index(b'<sheetData>');contentstart=start+len(b'<sheetData>');end=raw.index(b'</sheetData>')+len(b'</sheetData>')
         hend=raw.index(b'</row>',contentstart)+len(b'</row>');secondend=raw.index(b'</row>',hend)+len(b'</row>')
         wrapper=lambda text:E.fromstring(b'<root xmlns="'+NS['m'].encode()+b'">'+text+b'</root>')[0]
         mh=wrapper(raw[contentstart:hend]);template=wrapper(raw[hend:secondend]);mapping_headers=[value(c) for c in mh]
-        assert mapping_headers[:16]==['Kegunaan']+MAPPING_KEYS
-        assert len(mapping_headers) in (16,20)
-        if len(mapping_headers)==20:assert mapping_headers[16:]==METADATA
-        else:
-            for col,text in enumerate(METADATA,17):assign(mh,col,text,mh[-1].get('s'))
-        if mh.get('spans'):mh.set('spans','1:20')
-        ms={re.sub(r'\d','',c.get('r')):c.get('s') for c in template}
-        content=io.BytesIO();content.write(E.tostring(mh))
-        for i,d in enumerate(records,2):
-            row=E.Element(TAG+'row',nsmap={None:NS['m']},attrib=dict(template.attrib));row.set('r',str(i))
-            if row.get('spans'):row.set('spans','1:20')
-            for col,v in enumerate([PURPOSES[d['Jenis_Bukti']]]+[d[k] or None for k in MAPPING_KEYS+METADATA],1):
-                letter=get_column_letter(col);c=E.SubElement(row,TAG+'c',r=letter+str(i));style=ms.get(letter,ms.get('I'))
+        assert len(mapping_headers) in (16,20,12)
+        if len(mapping_headers)==12:assert mapping_headers==MAPPING_HEADERS
+        else:assert mapping_headers[:16]==['Kegunaan']+MAPPING_KEYS
+        ms={column_index_from_string(re.sub(r'\d','',c.get('r'))):c.get('s') for c in template}
+        mapping_header_style=mh[0].get('s')
+        content=io.BytesIO()
+        for i,vals in enumerate([MAPPING_HEADERS]+[mapping_row(d) for d in records],1):
+            row=E.Element(TAG+'row',nsmap={None:NS['m']},r=str(i))
+            for col,v in enumerate(vals,1):
+                if v=='':continue
+                c=E.SubElement(row,TAG+'c',r=get_column_letter(col)+str(i))
+                style=mapping_header_style if i==1 else ms.get(1)
                 if style is not None:c.set('s',style)
                 put(c,v);wrap(c)
             content.write(E.tostring(row))
         mapping=E.fromstring(raw[:start]+b'<sheetData/>'+raw[end:]);cols=mapping.find('m:cols',NS)
-        if len(mapping_headers)==16:
-            for col in range(17,21):E.SubElement(cols,TAG+'col',min=str(col),max=str(col),width='75' if col==19 else '35',customWidth='1')
-        before_count=int(mapping.find('m:dimension',NS).get('ref').split(':')[-1][1:])-1
-        for key in ['dimension','autoFilter']:mapping.find('m:'+key,NS).set('ref','A1:T'+str(len(records)+1))
+        for c in list(cols):cols.remove(c)
+        for col,width in enumerate([20,24,40,12,35,75,30,35,100,24,24,18],1):
+            E.SubElement(cols,TAG+'col',min=str(col),max=str(col),width=str(width),customWidth='1')
+        before_count=int(re.sub(r'^[A-Z]+','',mapping.find('m:dimension',NS).get('ref').split(':')[-1]))-1
+        for key in ['dimension','autoFilter']:mapping.find('m:'+key,NS).set('ref','A1:L'+str(len(records)+1))
         mappingbytes=E.tostring(mapping).replace(b'<sheetData/>',b'<sheetData>'+content.getvalue()+b'</sheetData>')
         xfs.set('count',str(len(xfs)))
         replacements={'xl/worksheets/sheet14.xml':E.tostring(data),'xl/worksheets/sheet15.xml':mappingbytes}
         if wrapmap:replacements['xl/styles.xml']=E.tostring(styles)
+        names=wb.find('m:definedNames',NS)
+        if names is not None:
+            for name in names:
+                if name.get('name')=='_xlnm._FilterDatabase' and name.get('localSheetId') in {'13','14'}:
+                    endcol,endrow=('AI',last) if name.get('localSheetId')=='13' else ('L',str(len(records)+1))
+                    name.text=name.text.rsplit('!',1)[0]+'!$A$1:$'+endcol+'$'+endrow
+            replacements['xl/workbook.xml']=E.tostring(wb)
         # Write a temporary archive first; replace the workbook only after ZIP integrity succeeds.
         with tempfile.NamedTemporaryFile(prefix='regional-review-',suffix='.xlsx',dir=workbook.parent,delete=False) as f:temp=Path(f.name)
         try:
@@ -163,7 +206,7 @@ def apply(workbook, candidates, backup):
         finally:
             temp.unlink(missing_ok=True)
     return {'existing_candidate_cells_changed':existing_changes,'records_with_candidate_changes':changed_records,
-            'metadata_cells_added_or_updated':metadata_changes,'records_with_metadata':metadata_records,
+            'data_columns_before':len(headers),'data_columns_after':35,'mapping_columns_after':12,
             'mapping_rows_before':before_count,'mapping_rows_after':len(records),'backup':str(backup)}
 
 
