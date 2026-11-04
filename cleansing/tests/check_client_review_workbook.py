@@ -105,7 +105,7 @@ def check(before,after,candidates):
     assert headers[:11]==oldheaders[:11]
     assert list(headers[11:27])==['Jumlah_Rekomendasi']+CHOICE_HEADERS
     assert headers[27:35]==oldheaders[old_client-1:old_client+7]
-    samples=[];watched={'a1pJ40000008XVWIA2','a1nJ4000000KUKFIA4','a1pJ40000008XDhIAM','a1nfC00000VF9PmQAL','a1ofC000001vBcaQAE','a1pJ40000008X4aIAE','a1ofC0000004iFaQAI','a1pJ40000008X21IAE'}
+    samples=[];watched={'a1pJ40000008XVWIA2','a1nJ4000000KUKFIA4','a1pJ40000008XDhIAM','a1nfC00000VF9PmQAL','a1ofC000001vBcaQAE','a1pJ40000008X4aIAE','a1ofC0000004iFaQAI','a1pJ40000008X21IAE','a1ofC000002XjI9QAK'}
     banned=re.compile(r'\b(record|lookup|hierarki|leluhur|pemulihan|verifikasi|canonical|deterministik|hipotesis|ambigu)\b',re.I)
     for row,oldrow in zip(it,oldit,strict=True):
         cs=groups[row[1]];assert row[11]==len(cs)
@@ -117,6 +117,8 @@ def check(before,after,candidates):
             values=[v or '' for v in row[12+i*5:17+i*5]]
             assert values==(client_candidate(cs[i]) if i<len(cs) else ['']*5)
             assert not banned.search(' '.join(values[3:5]))
+        options=[tuple(v or '' for v in row[12+i*5:15+i*5]) for i in range(3) if row[12+i*5] is not None]
+        assert len(options)==len(set(options)),row[1]
         if row[1] in watched:samples.append({'Nama':row[2],'Rekomendasi':row[12:17]})
     print('PASS: one ID/status/note per choice; names, paths, ranks and all candidate IDs agree with source CSV; pending IDs remain labelled; input values preserved.')
     print(json.dumps(samples,ensure_ascii=False,indent=2));old.close();w.close()

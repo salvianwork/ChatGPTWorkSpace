@@ -1,4 +1,4 @@
-from regional_review import candidate_id_review, unknown_parent_city_candidates
+from regional_review import candidate_id_review, unknown_parent_city_candidates, unique_review_candidates
 from regional_matching import ranked_candidates, district_context_candidates, city_context_candidates, district_other_city_candidates
 import csv,json,re,unicodedata,collections,pathlib,hashlib,zipfile,argparse
 import openpyxl
@@ -240,6 +240,7 @@ for i,rs in enumerate(results):
    cp=r['_path']
    if (r['Source_Id'],cp) not in candidate_keys:
     candidates.append({'Object':objects[i],'Source_Id':r['Source_Id'],'Source_Name':r['Source_Name'],'Rank':0,'Similarity':'','Candidate_Path':' | '.join(cp),'Candidate_Name':cp[-1],'Reason':'Lokasi sudah cocok dengan master; verifikasi ID dan relasi induk masih perlu dikonfirmasi. Kecocokan tetap ditampilkan untuk review.','_path':cp,'_level':i})
+candidates=unique_review_candidates(candidates)
 review_inventory={(r['_level'],r['_path']):r for r in master_rows}
 review_sources=[collections.defaultdict(list) for _ in levels]
 for i,rs in enumerate(results):

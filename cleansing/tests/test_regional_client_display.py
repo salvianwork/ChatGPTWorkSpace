@@ -2,7 +2,7 @@ import sys
 from pathlib import Path
 import unittest
 sys.path.insert(0,str(Path(__file__).resolve().parents[1]/'scripts'))
-from regional_client_display import client_candidate,source_text,CHOICE_HEADERS,MAPPING_HEADERS
+from regional_client_display import client_candidate,source_text,CHOICE_HEADERS,MAPPING_HEADERS,ensure_selection_matches
 
 
 class ClientDisplayTests(unittest.TestCase):
@@ -69,6 +69,18 @@ class ClientDisplayTests(unittest.TestCase):
         view=client_candidate(self.candidate(Alasan=reason,Id_Target_Kandidat='',
             ID_Master_Perlu_Verifikasi='one;two',Status_Verifikasi_ID='ID_MASTER_AMBIGU'))
         self.assertEqual(view[3],'Perlu pilih satu ID')
+
+    def test_unselected_or_unchanged_client_choice_is_preserved(self):
+        a=('Bekasi','Jawa Barat | Kab. Bekasi','id-a')
+        ensure_selection_matches([a,a,('','','')],[a],'PILIH_KANDIDAT_1')
+        ensure_selection_matches([a,a,('','','')],[a],None)
+        ensure_selection_matches([a,a,('','','')],[a],'MASUKKAN_ID_LAIN')
+
+    def test_existing_client_choice_must_not_silently_shift(self):
+        a=('Bekasi','Jawa Barat | Kab. Bekasi','id-a');b=('Bogor','Jawa Barat | Kota Bogor','id-b')
+        with self.assertRaises(ValueError):ensure_selection_matches([a,a,b],[a,b],'PILIH_KANDIDAT_2')
+        with self.assertRaises(ValueError):ensure_selection_matches([a,a,b],[a,b],'PILIH_KANDIDAT_3')
+        with self.assertRaises(ValueError):ensure_selection_matches([a,a,b],[a,b],None,'2')
 
 
 if __name__=='__main__':unittest.main()

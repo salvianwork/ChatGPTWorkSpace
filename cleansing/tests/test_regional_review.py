@@ -3,7 +3,7 @@ import sys
 from pathlib import Path
 import unittest
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'scripts'))
-from regional_review import candidate_id_review, unknown_parent_city_candidates
+from regional_review import candidate_id_review, unknown_parent_city_candidates, unique_review_candidates
 from regional_matching import district_context_candidates
 
 
@@ -94,6 +94,38 @@ class RegionalReviewTests(unittest.TestCase):
         wrong=candidate_id_review(source,('Banten','Kota Bogor','Bogor Barat'),self.inventory(),{},[],
             'Nama kecamatan sama pada master, tetapi kota/kabupaten berbeda: test')
         self.assertEqual(wrong['Unverified_Master_ID'],'')
+
+    def test_duplicate_destinations_collapse_and_remaining_choices_shift(self):
+        def row(path,rank,reason='Nama sama setelah normalisasi',source='source'):
+            return {'Object':'Kota_Kabupaten__c','Source_Id':source,'_path':path,'Rank':rank,'Reason':reason}
+        rows=[row(('Jawa Barat','Kab. Bekasi'),1),row(('Jawa Barat','Kab. Bekasi'),2,'Alias/usulan nama'),row(('Jawa Barat','Kota Bekasi'),3)]
+        before=copy.deepcopy(rows);result=unique_review_candidates(rows)
+        self.assertEqual([r['_path'] for r in result],[rows[0]['_path'],rows[2]['_path']])
+        self.assertEqual([r['Rank'] for r in result],[1,2]);self.assertEqual(result[0]['Reason'],rows[0]['Reason'])
+        self.assertEqual(rows,before)
+        self.assertEqual(len(unique_review_candidates(rows[:2])),1)
+        self.assertEqual(len(unique_review_candidates([rows[0],row(rows[0]['_path'],1,source='other')])),2)
+
+    def test_same_name_different_full_locations_remain(self):
+        rows=[{'Object':'Kecamatan__c','Source_Id':'s','_path':p,'Rank':i,'Reason':'Nama sama'} for i,p in enumerate([
+            ('Jawa Barat','Kab. Bogor','Ciawi'),('Jawa Barat','Kab. Tasikmalaya','Ciawi'),('Banten','Kab. Lain','Ciawi')],1)]
+        self.assertEqual(len(unique_review_candidates(rows)),3)
+
+    def test_deduplication_preserves_stronger_location_evidence(self):
+        base={'Object':'Kecamatan__c','Source_Id':'s','_path':('Jawa Timur','Kab. Tuban','Tuban')}
+        rows=[dict(base,Rank=1,Reason='Kemiripan teks dalam induk yang sama'),dict(base,Rank=4,Reason='Nama sumber ditemukan sebagai Kelurahan: Jawa Timur | Kab. Tuban | Tuban | Kingking')]
+        result=unique_review_candidates(rows)
+        self.assertEqual(len(result),1);self.assertIn('Kingking',result[0]['Reason']);self.assertEqual(result[0]['Rank'],1)
+
+    def test_zero_rank_match_stays_first(self):
+        base={'Object':'Kecamatan__c','Source_Id':'s'}
+        exact=('P','C','Exact');other=('P','C','Other')
+        rows=[dict(base,_path=other,Rank=1,Reason='Kemiripan teks'),
+              dict(base,_path=exact,Rank=2,Reason='Kemiripan teks'),
+              dict(base,_path=exact,Rank=0,Reason='Lokasi sudah cocok dengan master')]
+        result=unique_review_candidates(rows)
+        self.assertEqual([r['_path'] for r in result],[exact,other])
+        self.assertEqual(result[0]['Reason'],'Lokasi sudah cocok dengan master')
 
 
 if __name__ == '__main__':

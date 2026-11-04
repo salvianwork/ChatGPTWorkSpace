@@ -81,6 +81,18 @@ def check(old, new):
     def destinations(rows):
         return [(r['Nama_Kandidat'], r['Hierarki_Kandidat'], r['Id_Target_Kandidat'])
                 for r in rows if r['Jenis_Bukti'] == 'KANDIDAT_OBJEK_SAMA']
+    # Deduplication must not remove a distinct location or change its verified ID.
+    for rid in groups.keys() | oldgroups.keys():
+        assert destinations(groups[rid])==list(dict.fromkeys(destinations(oldgroups[rid]))),rid
+        def visible_ids(rows):
+            return [(r['Nama_Kandidat'],r['Hierarki_Kandidat'],r['Id_Target_Kandidat'] or r.get('ID_Master_Perlu_Verifikasi',''))
+                    for r in rows if r['Jenis_Bukti']=='KANDIDAT_OBJEK_SAMA']
+        assert visible_ids(groups[rid])==list(dict.fromkeys(visible_ids(oldgroups[rid]))),rid
+        target_rows=[r for r in groups[rid] if r['Jenis_Bukti']=='KANDIDAT_OBJEK_SAMA']
+        paths=[r['Hierarki_Kandidat'] for r in target_rows]
+        assert len(paths)==len(set(paths)),rid
+    bekasi=[r for r in groups['a1ofC000002XjI9QAK'] if r['Jenis_Bukti']=='KANDIDAT_OBJEK_SAMA']
+    assert len(bekasi)==1 and bekasi[0]['Nama_Kandidat']=='Kab. Bekasi'
     changed = sum(destinations(groups[rid]) != destinations(oldgroups[rid]) for rid in groups.keys() | oldgroups.keys())
     print('All non-candidate CSVs identical:', len(filenames))
     print('Candidate rows before/after:', len(before), len(after))

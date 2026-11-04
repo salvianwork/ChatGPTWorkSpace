@@ -98,3 +98,34 @@ def candidate_id_review(source, candidate_path, inventory, preferred_records, ma
         explanation += ' ID terkait sama dengan ID sumber; tinjau koreksi record ini, bukan pemindahan duplikat.'
     return {'Candidate_Target_Id': verified, 'Review_Kind': kind, 'ID_Verification': status,
             'ID_Explanation': explanation, 'Unverified_Master_ID': ';'.join(unverified)}
+
+
+def unique_review_candidates(candidates):
+    """One candidate per source, object and complete master path.
+
+    IDs are resolved afterwards from this same path, so spelling/reason alone
+    cannot create two copies of a destination. Keep the earliest position, but
+    retain a specific location explanation instead of a generic fuzzy reason.
+    Inputs and deterministic mapping records are not modified.
+    """
+    groups={}
+    for candidate in candidates:
+        groups.setdefault((candidate['Object'],candidate['Source_Id']),[]).append(candidate)
+    result=[]
+    for rows in groups.values():
+        seen={};unique=[]
+        for row in sorted(rows,key=lambda r:int(r['Rank'])):
+            key=tuple(row['_path'])
+            if key not in seen:
+                seen[key]=len(unique);unique.append(dict(row))
+            else:
+                existing=unique[seen[key]]
+                generic=existing['Reason'].startswith('Kemiripan teks')
+                specific=(row['Reason'].startswith('Nama sumber ditemukan sebagai')
+                          or row['Reason'].startswith('Exact kelurahan name within a city')
+                          or row['Reason'].startswith('Matches direct city evidence'))
+                if generic and specific:
+                    replacement=dict(row);replacement['Rank']=existing['Rank'];unique[seen[key]]=replacement
+        for rank,row in enumerate(unique,1):
+            row['Rank']=rank;result.append(row)
+    return result

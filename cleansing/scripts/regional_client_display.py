@@ -114,3 +114,19 @@ def client_candidate(d):
 def mapping_row(d):
     obj={'Provinsi__c':'Provinsi','Kota_Kabupaten__c':'Kota/Kabupaten','Kecamatan__c':'Kecamatan','Kelurahan__c':'Kelurahan'}.get(d['Objek'],d['Objek'])
     return [obj,d['Id_Sumber'],d['Nama_Sumber'],d['Urutan']]+client_candidate(d)+[d['Sumber_Data'],d['Tingkat_Ditemukan'],d['Jumlah_Kemunculan']]
+
+
+def ensure_selection_matches(old_options, new_options, decision, choice=''):
+    """Do not silently change what an already-filled client choice points to."""
+    import re
+    match=re.fullmatch(r'PILIH_KANDIDAT_([123])',str(decision or '').strip())
+    if match:
+        index=int(match[1])-1
+    elif not decision and str(choice or '').strip() in {'1','2','3'}:
+        index=int(str(choice).strip())-1
+    else:
+        return
+    old=tuple(v or '' for v in old_options[index])
+    new=tuple(v or '' for v in new_options[index]) if index<len(new_options) else ('','','')
+    if old != new:
+        raise ValueError('Pilihan client yang sudah diisi akan menunjuk rekomendasi berbeda. Tinjau pilihan client tersebut sebelum merapikan rekomendasi.')

@@ -18,7 +18,7 @@ from zipfile import ZipFile
 from lxml import etree as E
 from openpyxl.utils import get_column_letter, column_index_from_string, range_boundaries as openpyxl_range
 from regional_review import REVIEW_FIELDS
-from regional_client_display import CHOICE_HEADERS, MAPPING_HEADERS, client_candidate, mapping_row, source_text
+from regional_client_display import CHOICE_HEADERS, MAPPING_HEADERS, client_candidate, mapping_row, source_text, ensure_selection_matches
 
 NS = {'m': 'http://schemas.openxmlformats.org/spreadsheetml/2006/main'}
 TAG = '{' + NS['m'] + '}'
@@ -114,6 +114,12 @@ def apply(workbook, candidates, backup):
             cs=[] if is_header else groups[value(cells[2])]
             if not is_header:
                 assert all(d['Nama_Sumber']==value(cells[3]) for d in cs)
+                step=5 if compact else 4
+                old_choices=[[value(cells.get(13+i*step+j)) for j in range(3)] for i in range(3)]
+                try:
+                    ensure_selection_matches(old_choices,[client_candidate(d)[:3] for d in cs[:3]],value(cells.get(client_start)),value(cells.get(client_start+1)))
+                except ValueError as exc:
+                    raise ValueError(str(value(cells[2]))+': '+str(exc)) from exc
                 new_notes=source_text(value(cells[9]),value(cells[10]),value(cells.get(6)),value(cells.get(8)),value(cells.get(11)))
                 for col,v in zip([9,10,11],new_notes):
                     old=next((c for c in protected if colnum(c)==col),None)

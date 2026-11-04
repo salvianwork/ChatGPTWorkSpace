@@ -373,3 +373,55 @@ Validasi versi ini:
 Penerapan ulang pada hasil Bogor dan kasus serupa menghasilkan nol perubahan
 sel tambahan. Tidak ada kolom baru atau formula baru. Semua rekomendasi pada
 workbook sesuai CSV yang sudah divalidasi, termasuk Bogor Timur dan Bogor Barat.
+
+## Rekomendasi yang berulang digabung
+
+Kandidat dengan objek, ID sumber, dan seluruh lokasi master yang sama sekarang
+hanya ditampilkan sekali. ID tujuan ditentukan dari lokasi master tersebut
+setelah penggabungan, sehingga dua cara pencarian tidak lagi menghasilkan dua
+pilihan untuk tujuan yang sama. Nama yang sama di lokasi berbeda tetap menjadi
+pilihan terpisah. Tidak ada pencocokan sebagian nama untuk menghapus duplikasi.
+
+Urutan tujuan yang berbeda tetap mengikuti kemunculan pertama sebelumnya.
+Nomor pilihan dan Jumlah_Rekomendasi diperbarui. Contoh A, A menjadi A saja;
+contoh A, A, B menjadi A, B. Jika ada kandidat berbeda berikutnya, kandidat itu
+mengisi tempat yang tersedia di antara tiga pilihan yang ditampilkan. Slot
+pilihan yang tidak terpakai dikosongkan. Jika penjelasan umum berulang dengan
+bukti lokasi yang lebih jelas, bukti lokasi dipertahankan dalam satu catatan.
+
+Contoh `a1ofC000002XjI9QAK` (kab bekasi) sekarang mempunyai satu rekomendasi:
+`Jawa Barat | Kab. Bekasi`, ID `a1oJ40000009JMEIA2`. Pilihan 2 dan 3 kosong.
+Sebelumnya tujuan tersebut muncul dua kali akibat kecocokan nama dan usulan nama.
+
+PILIHAN MAPPING mengikuti daftar unik yang sama. Bukti nama dari Master dan
+Salesforce pada tingkat wilayah lain tetap terpisah; yang digabung hanya
+kandidat tujuan berulang. Tidak ada record sumber yang dihapus.
+
+Input client tidak diubah otomatis. Bila pilihan client yang sudah diisi akan
+menunjuk kandidat berbeda setelah daftar dirapikan, helper menghentikan proses
+sebelum mengganti workbook dan menyebutkan ID sumber yang perlu diperiksa.
+Pada workbook tugas ini, perapian berhasil tanpa mengubah input client.
+
+Validasi versi ini:
+
+- 40 pengujian unit lulus: duplikasi nama/usulan, pemadatan pilihan, urutan
+  kecocokan utama, nama sama beda lokasi, bukti lokasi yang harus dipertahankan,
+  serta perlindungan pilihan client yang sudah diisi.
+- 20.088 baris kandidat berulang digabung pada 10.939 record. Sebelum perapian,
+  4.974 record mempunyai duplikasi dalam tiga pilihan yang terlihat.
+- Workbook memperbarui 33.336 sel rekomendasi pada 10.939 record. Jumlah baris
+  PILIHAN MAPPING turun dari 79.741 ke 59.653 karena tujuan berulang digabung.
+  Jumlah/urutan record sumber DATA BELUM JELAS tetap sama.
+- Perbandingan seluruh sumber memastikan daftar tujuan dan ID yang berbeda
+  tetap sama, dengan urutan kemunculan pertama yang sama. Setiap sumber tidak
+  lagi mempunyai dua kandidat pada lokasi master yang sama.
+- Seluruh 28 CSV nonkandidat identik: status mapping, ID sumber, keputusan
+  update dan duplikat tidak berubah. Bukti lintas tingkat tetap sama selain
+  nomor urut tampilan.
+- Validator workbook memastikan tiga pilihan yang ditampilkan tidak berulang,
+  semua nilai sesuai CSV, semua input client dan dropdown tetap, 13 sheet lain
+  identik, tanpa formula atau ID final baru. Susunan 35/12 kolom tetap sama.
+
+Penerapan ulang hasil daftar unik menghasilkan nol perubahan sel tambahan.
+Perbandingan juga memastikan ID rekomendasi yang masih perlu konfirmasi tetap
+tercakup; yang dihapus hanya pengulangannya, bukan tujuan atau ID yang berbeda.
