@@ -92,6 +92,39 @@ class RegionalMatchingTests(unittest.TestCase):
         self.assertEqual(result[0][0], children[0][:2])
         self.assertIn('Kelurahan:', result[0][1])
 
+    def test_comma_parent_buay_pemaca(self):
+        parent = ('Sumatra Selatan', 'Kab. Ogan Komering Ulu Selatan')
+        path = parent + ('Buay Pemaca',)
+        result = ranked_candidates(2, 'Buay Pemaca, Ogan Komering Ulu Selatan', parent, [path])
+        self.assertEqual(result[0][2], path)
+        self.assertEqual(result[0][0], 0)
+        self.assertLess(result[0][1], 50)
+        self.assertIn('keterangan induk setelah koma', result[0][3])
+
+    def test_comma_qualifier_does_not_guess_or_ignore_conflict(self):
+        from regional_matching import name_with_validated_parent as extract
+        parent = ('Sumatra Selatan', 'Kab. Ogan Komering Ulu Selatan')
+        self.assertIsNone(extract('Buay Pemaca, Ogan Komering Ulu Selatan', 2, None))
+        self.assertIsNone(extract('Buay Pemaca, Kabupaten Lain', 2, parent))
+        self.assertIsNone(extract('Buay Pemaca, Kota Ogan Komering Ulu Selatan', 2, parent))
+        self.assertIsNone(extract('Buay Pemaca,', 2, parent))
+        self.assertIsNone(extract('Buay Pemaca, Ogan Komering Ulu Selatan, Banten', 2, parent))
+        self.assertIsNone(extract('Buay Pemaca Ogan Komering Ulu Selatan', 2, parent))
+        self.assertEqual(extract('Buay Pemaca, Kab. Ogan Komering Ulu Selatan, Sumatra Selatan', 2, parent), 'Buay Pemaca')
+
+    def test_comma_qualifiers_across_levels(self):
+        from regional_matching import name_with_validated_parent as extract
+        self.assertEqual(extract('Kab. Bekasi, Jawa Barat', 1, ('Jawa Barat',)), 'Kab. Bekasi')
+        parent = ('Jawa Timur', 'Kab. Tuban', 'Tuban')
+        self.assertEqual(extract('Kingking, Kec. Tuban, Kabupaten Tuban, Jawa Timur', 3, parent), 'Kingking')
+        self.assertIsNone(extract('Kingking, Kabupaten Tuban, Kec. Tuban', 3, parent))
+        path = parent + ('Kingking',)
+        result = ranked_candidates(3, 'Kingking, Kecamatan Tuban', parent, [path])
+        self.assertEqual(result[0][0], 0)
+        # A conflicting qualifier may still produce a fuzzy suggestion, never an exact one.
+        result = ranked_candidates(3, 'Kingking, Kecamatan Lain', parent, [path])
+        self.assertFalse(any(r[0] == 0 for r in result))
+
 
 if __name__ == '__main__':
     unittest.main()

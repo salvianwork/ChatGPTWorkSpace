@@ -31,6 +31,30 @@ def city_parts(value):
 ALIASES = json.loads(Path(__file__).with_name('regional_aliases.json').read_text())
 
 
+def name_with_validated_parent(name, level, parent):
+    """Remove comma qualifiers only when each matches a known parent component.
+
+    Qualifiers run from the immediate parent outward. Never infer a missing
+    parent, discard unmatched qualifiers, or change the deterministic name key.
+    """
+    parts = [part.strip() for part in str(name or '').split(',')]
+    if len(parts) < 2 or not all(parts) or parent is None or len(parent) != level:
+        return None
+    if len(parts) - 1 > len(parent):
+        return None
+    for offset, qualifier in enumerate(parts[1:]):
+        parent_level = level - 1 - offset
+        expected = parent[parent_level]
+        if parent_level == 1:
+            kind, core = city_parts(qualifier)
+            expected_kind, expected_core = city_parts(expected)
+            if not core or core != expected_core or (kind and kind != expected_kind):
+                return None
+        elif normalize(qualifier, parent_level) != normalize(expected, parent_level):
+            return None
+    return parts[0]
+
+
 def ranked_candidates(level, name, parent, paths):
     """Return (priority, text similarity, path, explanation), strongest first.
 
@@ -40,6 +64,7 @@ def ranked_candidates(level, name, parent, paths):
     """
     eligible = sorted(p for p in paths if parent is None or p[:-1] == parent)
     candidates = []
+    qualified_name = name_with_validated_parent(name, level, parent)
     for path in eligible:
         score = round(100 * difflib.SequenceMatcher(
             None, normalize(name, level), normalize(path[-1], level)).ratio(), 2)
@@ -48,6 +73,11 @@ def ranked_candidates(level, name, parent, paths):
         if normalize(name, level) == normalize(path[-1], level):
             priority = 0
             reason = 'Nama sama setelah normalisasi; ' + ('induk belum diketahui' if parent is None else 'hierarki induk sama') + '; perlu dikonfirmasi.'
+        elif qualified_name is not None and normalize(qualified_name, level) == normalize(path[-1], level):
+            priority = 0
+            reason = ('Nama wilayah sama setelah keterangan induk setelah koma dicocokkan '
+                      'dengan hierarki induk yang sudah teridentifikasi; perlu dikonfirmasi. '
+                      'Nama sumber dipertahankan dan ID final tidak ditetapkan otomatis.')
         elif parent is None:
             continue
         elif any(a['level'] == level and normalize(a['province'], 0) == normalize(path[0], 0)

@@ -128,3 +128,36 @@ Penerapan workbook: 211 sel jumlah/pilihan/alasan diperbarui pada 23 record.
 Validasi semua baris kandidat dan pilihan tampilan lulus. Seluruh 15 sheet tetap
 dengan urutan sama, jumlah record sumber tetap, 13 sheet lain identik, input
 client dan dropdown tetap, tanpa formula atau ID final baru.
+
+## Nama wilayah dengan keterangan induk setelah koma
+
+Untuk rekomendasi review, nama seperti `Buay Pemaca, Ogan Komering Ulu Selatan`
+dapat dibandingkan dengan `Buay Pemaca` hanya setelah suffix kabupatennya
+cocok dengan induk yang sudah teridentifikasi. Nama sumber dan normalisasi
+untuk mapping deterministik tidak diubah. Rekomendasi ini tetap memerlukan
+konfirmasi client dan tidak mengisi ID final.
+
+Aturan berlaku bagi Kota/Kabupaten, Kecamatan, dan Kelurahan. Jika terdapat
+beberapa suffix setelah koma, urutannya harus sesuai induk langsung lalu
+leluhurnya. Semua suffix harus cocok; suffix kosong, provinsi salah, jenis
+Kota/Kabupaten bertentangan, atau induk yang tidak diketahui tidak boleh
+diabaikan. Nama tanpa koma tidak dipotong berdasarkan kecocokan sebagian kata.
+
+Skor `Kemiripan` tetap dihitung dari nama sumber lengkap. Kandidat nama yang
+sama dengan keterangan induk cocok diprioritaskan berdasarkan bukti struktur,
+meskipun skor teks mentah di bawah 50. Skor bukan probabilitas mapping benar.
+14 pengujian unit mencakup kasus positif, batas wilayah, dan konflik suffix.
+
+Validasi aturan koma: generator dan penerjemahan lama serta baru berhasil
+selesai; seluruh 28 CSV nonkandidat identik. Tujuan atau urutan rekomendasi
+berubah untuk 30 record; total baris kandidat/informasi review berubah dari
+71.528 ke 71.548. Workbook memperbarui 265 sel jumlah/pilihan/alasan pada 114
+record (termasuk penjelasan baru untuk kandidat yang tujuannya tetap sama).
+Buay Pemaca direkomendasikan dengan ID kandidat `a1pfC00000DcH7xQAF` dalam
+hierarki `Sumatra Selatan | Kab. Ogan Komering Ulu Selatan | Buay Pemaca`.
+
+Validasi workbook lulus: semua 15 sheet dengan urutan sama, jumlah/urutan baris
+sumber tetap, hanya kolom kandidat L:X dan daftar PILIHAN MAPPING diperbarui.
+13 sheet lain identik, seluruh ID sumber dan input client tetap, dropdown
+tetap, wrap text aktif, tanpa formula atau ID final baru. Semua kandidat
+dan jumlah pilihan sesuai keluaran script; contoh sebelumnya tetap benar.

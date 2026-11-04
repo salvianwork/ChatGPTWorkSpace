@@ -26,7 +26,7 @@ def check(old, new):
         groups[row['Id_Sumber']].append(row)
         if row['Jenis_Bukti'] == 'TEMUAN_LINTAS_TINGKAT':
             assert not row['Id_Target_Kandidat']
-    for rid, target in [('a1oJ40000009JKeIAM', 'Kota Banjar'), ('a1ofC000000PZnOQAW', 'Kota Tangerang Selatan'), ('a1pJ40000008XLbIAM', 'Tuban'), ('a1ofC0000003GwHQAU', 'Kab. Bekasi')]:
+    for rid, target in [('a1oJ40000009JKeIAM', 'Kota Banjar'), ('a1ofC000000PZnOQAW', 'Kota Tangerang Selatan'), ('a1pJ40000008XLbIAM', 'Tuban'), ('a1ofC0000003GwHQAU', 'Kab. Bekasi'), ('a1pJ40000008X3UIAU', 'Buay Pemaca')]:
         assert groups[rid][0]['Nama_Kandidat'] == target
         assert groups[rid][0]['Jenis_Bukti'] == 'KANDIDAT_OBJEK_SAMA'
         print(rid, 'first recommendation:', target, groups[rid][0]['Id_Target_Kandidat'])
@@ -38,6 +38,9 @@ def check(old, new):
     assert not any(r['Nama_Kandidat'] == 'Kab. Sumedang' for r in babelan)
     assert 'Kecamatan: Jawa Barat | Kab. Bekasi | Babelan' in babelan[0]['Alasan']
     assert babelan[0]['Kemiripan'] == ''
+    pemaca = groups['a1pJ40000008X3UIAU'][0]
+    assert pemaca['Hierarki_Kandidat'] == 'Sumatra Selatan | Kab. Ogan Komering Ulu Selatan | Buay Pemaca'
+    assert 'keterangan induk setelah koma' in pemaca['Alasan']
     # Cross-level evidence remains exactly the same apart from its display rank.
     def evidence(rows):
         return sorted(tuple(sorted((k, v) for k, v in r.items() if k != 'Urutan'))
