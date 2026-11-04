@@ -113,7 +113,7 @@ def district_context_candidates(name, parent, kelurahan_paths):
         return []
     found = {}
     for path in sorted(kelurahan_paths):
-        if path[:2] != parent or normalize(path[-1], 3) != normalize(name, 3):
+        if path[:2] != parent or normalize(path[-1], 3) not in {normalize(name, 3), normalize(str(name) + ' Kota', 3)}:
             continue
         district = path[:3]
         reason = (
@@ -123,6 +123,8 @@ def district_context_candidates(name, parent, kelurahan_paths):
             'Kelurahan, konfirmasikan koreksi tingkat wilayah dan lokasinya. '
             'ID tujuan final tidak ditetapkan otomatis; perlu dikonfirmasi.'
         )
+        if normalize(path[-1], 3) != normalize(name, 3):
+            reason += ' Variasi nama anak dengan akhiran Kota; bukan kecocokan nama persis.'
         found.setdefault(district, reason)
     if len(found) > 1:
         found = {p: reason + ' Ambigu: terdapat lebih dari satu kecamatan induk dalam kota/kabupaten ini.'

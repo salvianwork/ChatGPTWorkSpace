@@ -41,9 +41,32 @@ def check(old, new):
     pemaca = groups['a1pJ40000008X3UIAU'][0]
     assert pemaca['Hierarki_Kandidat'] == 'Sumatra Selatan | Kab. Ogan Komering Ulu Selatan | Buay Pemaca'
     assert 'keterangan induk setelah koma' in pemaca['Alasan']
+    for rid, name in [('a1ofC000001vBcaQAE','Kota Jakarta Barat'),('a1pJ40000008X4aIAE','Dusun Selatan'),('a1pJ40000008XVWIA2','Martapura'),('a1nfC00000VF9PmQAL','Lohong')]:
+        candidate=groups[rid][0]
+        assert candidate['Nama_Kandidat']==name,(rid,candidate)
+        assert candidate['Status_Verifikasi_ID'] and candidate['Alasan_Verifikasi_ID']
+    assert groups['a1ofC000001vBcaQAE'][0]['Id_Target_Kandidat']=='a1oJ40000009JLZIA2'
+    assert groups['a1pJ40000008X4aIAE'][0]['Id_Target_Kandidat']=='a1pfC00000DcGqWQAV'
+    huta=groups['a1pJ40000008XDhIAM']
+    huta_choices=[r for r in huta if r['Jenis_Bukti']=='KANDIDAT_OBJEK_SAMA']
+    assert {r['Nama_Kandidat'] for r in huta_choices}=={'Muara','Purbatua'}
+    muara=next(r for r in huta_choices if r['Nama_Kandidat']=='Muara')
+    assert not muara['Id_Target_Kandidat'] and muara['Status_Verifikasi_ID']=='BELUM_ADA_ID_TERVERIFIKASI'
+    for rid,status in [('a1nJ4000000KUKFIA4','KONFLIK_RELASI_ID_MASTER'),('a1nfC00000VF9PmQAL','INDUK_ID_MASTER_PERLU_KONFIRMASI'),('a1pJ40000008XVWIA2','INDUK_ID_MASTER_PERLU_KONFIRMASI')]:
+        candidate=groups[rid][0]
+        assert not candidate['Id_Target_Kandidat']
+        assert candidate['Status_Verifikasi_ID']==status
+        assert candidate['ID_Master_Perlu_Verifikasi']==rid
+        assert candidate['Jenis_Rekomendasi']=='KOREKSI_RECORD_YANG_SAMA'
+    for rows in groups.values():
+        for candidate in rows:
+            if candidate['Jenis_Bukti']=='KANDIDAT_OBJEK_SAMA':
+                assert candidate['Status_Verifikasi_ID'] and candidate['Alasan_Verifikasi_ID']
+                if candidate['Id_Target_Kandidat']:
+                    assert candidate['Status_Verifikasi_ID'] in {'ID_TERVERIFIKASI','ID_ALTERNATIF_TERVERIFIKASI_UNTUK_REVIEW'}
     # Cross-level evidence remains exactly the same apart from its display rank.
     def evidence(rows):
-        return sorted(tuple(sorted((k, v) for k, v in r.items() if k != 'Urutan'))
+        return sorted(tuple(sorted((k, v) for k, v in r.items() if k not in {'Urutan','Jenis_Rekomendasi','Status_Verifikasi_ID','Alasan_Verifikasi_ID','ID_Master_Perlu_Verifikasi'}))
                       for r in rows if r['Jenis_Bukti'] == 'TEMUAN_LINTAS_TINGKAT')
     assert evidence(before) == evidence(after)
     def destinations(rows):

@@ -1,3 +1,4 @@
+from regional_review import candidate_id_review, unknown_parent_city_candidates
 from regional_matching import ranked_candidates, district_context_candidates, city_context_candidates
 import csv,json,re,unicodedata,collections,pathlib,hashlib,zipfile,argparse
 import openpyxl
@@ -130,6 +131,9 @@ for i,rows in enumerate(data):
                         'Candidate_Path':' | '.join(p),'Candidate_Name':p[-1],
                         'Reason':('Matches direct city evidence; conflicts with linked district' if conflict and direct_city and p[:2]==direct_city else reason),
                         '_path':p,'_level':i})
+  if path is None and i==1 and parent is None:
+   for rank,(cp,reason) in enumerate(unknown_parent_city_candidates(name,row.get('Name Changes',''),master[1]),1):
+    candidates.append({'Object':objects[i],'Source_Id':rid,'Source_Name':name,'Rank':rank,'Similarity':'','Candidate_Path':' | '.join(cp),'Candidate_Name':cp[-1],'Reason':reason,'_path':cp,'_level':i})
   if path is None and i==1:
    context=city_context_candidates(name,parent,names[2].get(norm(name,2),set()),names[3].get(norm(name,3),set()))
    if context:
@@ -153,7 +157,7 @@ for i,rows in enumerate(data):
      dest=cp;reason='Exact kelurahan name within a city supported by source evidence; confirm district and conflicting city links'
     if dest not in [x[1] for x in extra]:extra.append((100.0,dest,reason))
    if i==2:
-    context=district_context_candidates(name,parent,names[3].get(norm(name,3),set()))
+    context=district_context_candidates(name,parent,names[3].get(norm(name,3),set()) | names[3].get(norm(name+' Kota',3),set()))
     if context:
      # Exact hierarchy evidence is stronger than unrelated fuzzy district names.
      candidates=[c for c in candidates if not (c['Source_Id']==rid and c['Reason'].startswith('Kemiripan teks'))]
@@ -221,7 +225,21 @@ for i in range(4):
    r['Status']='CANONICAL_UPDATE_PROPOSED' if change else 'VALID_CANONICAL'
    r['Action']='UPDATE_AFTER_REVIEW' if change else 'KEEP'
    if change:updates.append({'Object':objects[i],'Id':tid,**change,'Original_Name':r['Source_Name'],'Original_Parent_Id':r['Source_Parent_Id'],'Original_Direct_City_Id':r['Source_Direct_City_Id'],'Master_Path':' | '.join(p)})
-for c in candidates:c['Candidate_Target_Id']=targets[c['_level']].get(c['_path'],'')
+candidate_keys={(c['Source_Id'],c['_path']) for c in candidates}
+for i,rs in enumerate(results):
+ for r in rs:
+  if r['_path'] and r['Status'] not in ('VALID_CANONICAL','CANONICAL_UPDATE_PROPOSED','MAPPED_DUPLICATE'):
+   cp=r['_path']
+   if (r['Source_Id'],cp) not in candidate_keys:
+    candidates.append({'Object':objects[i],'Source_Id':r['Source_Id'],'Source_Name':r['Source_Name'],'Rank':0,'Similarity':'','Candidate_Path':' | '.join(cp),'Candidate_Name':cp[-1],'Reason':'Lokasi sudah cocok dengan master; verifikasi ID dan relasi induk masih perlu dikonfirmasi. Kecocokan tetap ditampilkan untuk review.','_path':cp,'_level':i})
+review_inventory={(r['_level'],r['_path']):r for r in master_rows}
+review_sources=[collections.defaultdict(list) for _ in levels]
+for i,rs in enumerate(results):
+ for r in rs:
+  if r['_path']:review_sources[i][r['_path']].append(r)
+for c in candidates:
+ i=c['_level'];cp=c['_path']
+ c.update(candidate_id_review(maps[i][c['Source_Id']],cp,review_inventory[(i,cp)],maps[i],review_sources[i].get(cp,[]),c['Reason']))
 for c in crosslevel:c['Candidate_Kecamatan_Target_Id']=targets[2].get(c['_path'],'')
 def public(r):return {k:v for k,v in r.items() if not k.startswith('_')}
 def write(name,rows,columns=None):

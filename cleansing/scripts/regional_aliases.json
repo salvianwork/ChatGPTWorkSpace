@@ -1,3 +1,14 @@
 [
-  {"level": 1, "province": "Banten", "alias": "Tangsel", "target": "Kota Tangerang Selatan"}
+  {
+    "level": 1,
+    "province": "Banten",
+    "alias": "Tangsel",
+    "target": "Kota Tangerang Selatan"
+  },
+  {
+    "level": 1,
+    "province": "DKI Jakarta",
+    "alias": "jakbar",
+    "target": "Kota Jakarta Barat"
+  }
 ]

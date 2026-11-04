@@ -161,3 +161,102 @@ sumber tetap, hanya kolom kandidat L:X dan daftar PILIHAN MAPPING diperbarui.
 13 sheet lain identik, seluruh ID sumber dan input client tetap, dropdown
 tetap, wrap text aktif, tanpa formula atau ID final baru. Semua kandidat
 dan jumlah pilihan sesuai keluaran script; contoh sebelumnya tetap benar.
+
+## Review lokasi yang cocok dan penjelasan ID
+
+Semua record review yang lokasinya sudah cocok dengan master kini mempunyai
+kandidat lokasi, termasuk yang ID canonical atau induknya belum terverifikasi.
+Penambahan kandidat dilakukan sesudah keputusan deterministik selesai. Status
+mapping, daftar update, duplikat, dan seluruh ID sumber tidak diubah oleh tahap
+ini. Bila ID terkait sama dengan sumber, rekomendasi ditandai sebagai koreksi
+record yang sama, bukan usulan pemindahan duplikat.
+
+Setiap kandidat tingkat sama membawa empat field tambahan:
+
+| Kolom | Arti |
+|---|---|
+| Jenis_Rekomendasi | Kandidat record tujuan, kecocokan lokasi perlu review, koreksi record yang sama, hipotesis tingkat wilayah, atau lokasi dengan induk sumber belum diketahui. |
+| Status_Verifikasi_ID | ID terverifikasi, alternatif terverifikasi untuk review, konflik relasi, induk perlu konfirmasi, ID master berbeda hierarki/tidak ditemukan/ambigu, record tersedia belum terverifikasi, atau belum ada ID terverifikasi. |
+| Alasan_Verifikasi_ID | Alasan ID belum dapat dipakai, konteks konflik/pemulihan induk sumber, dan apakah ID yang dibahas sama dengan sumber. |
+| ID_Master_Perlu_Verifikasi | ID dari master atau record ekspor pada lokasi master tersebut yang masih perlu diverifikasi. Field ini bukan ID tujuan final dan bukan ID terverifikasi. Dapat berisi beberapa ID dipisahkan titik koma. |
+
+ID pada `Id_Target_Kandidat` / `Pilihan_n_Id_Target` hanya diisi bila canonical
+lama sudah terverifikasi, atau terdapat satu alternatif dengan nama persis,
+seluruh hierarki cocok, tanpa konflik dan tanpa pemulihan induk/leluhur.
+Alternatif diberi status `ID_ALTERNATIF_TERVERIFIKASI_UNTUK_REVIEW`; keputusan
+canonical dan pemindahan referensi tetap menunggu konfirmasi. Master ID yang
+berkonflik tetap ditampilkan terpisah. Bila tidak ada ID sesuai hierarki,
+field ID terverifikasi tetap kosong dengan penjelasan. ID Muara dari Papua
+misalnya tidak boleh dipakai untuk Muara di Tapanuli Utara.
+
+Kamus alias menambahkan jakbar. Untuk Kota/Kabupaten tanpa induk, hanya alias
+atau usulan nama eksplisit dalam CSV yang menghasilkan satu lokasi master
+unik yang dapat ditampilkan untuk review. Provinsi sumber tidak diisi atau
+diasumsikan sudah benar. Bila alias dan usulan menunjuk lokasi berbeda, tidak
+ada kandidat unik dari aturan ini.
+
+Konteks kecamatan kini menerima nama kelurahan persis atau variasi terbatas
+`nama sumber + Kota`, dalam kota/kabupaten yang sudah diketahui. Bukti variasi
+tersebut diberi keterangan bahwa nama tidak cocok persis. Buntok Kota menjadi
+bukti untuk Dusun Selatan, tanpa menggunakan substring bebas atau kabupaten
+lain. Semua kecamatan yang cocok tetap ditampilkan bila ambigu.
+
+### Penerapan workbook yang dapat diulang
+
+Install dependency sesuai `cleansing/requirements.txt` jika belum tersedia.
+`lxml` dipakai untuk mempertahankan XML sheet lain, style lama, dan dropdown.
+Dari root repository, setelah generator dan penerjemahan selesai:
+
+```sh
+python cleansing/scripts/update_regional_client_workbook.py \
+  --workbook 'cleansing/client_review/Mandatory for Client/02_REVIEW_CLIENT_DATA_REGIONAL.xlsx' \
+  --candidates /tmp/regional-trial/03_Manual_Review/Review_candidates.csv \
+  --backup /tmp/regional-before-apply.xlsx \
+  --report /tmp/regional-apply-report.json
+
+python cleansing/tests/check_client_review_workbook.py \
+  /tmp/regional-before-apply.xlsx \
+  'cleansing/client_review/Mandatory for Client/02_REVIEW_CLIENT_DATA_REGIONAL.xlsx' \
+  /tmp/regional-trial/03_Manual_Review/Review_candidates.csv
+```
+
+Gunakan nama backup baru setiap penerapan. Tool menolak menimpa backup yang
+sudah ada. Workbook sementara diperiksa sebagai ZIP sebelum mengganti file
+asli. Hanya DATA BELUM JELAS dan PILIHAN MAPPING yang diperbarui.
+
+DATA BELUM JELAS mempertahankan 32 kolom lama A:AF. Tambahan 12 kolom AG:AR
+berisi empat field penjelasan untuk masing-masing Pilihan 1–3. Input client
+Y:AF tetap pada posisi, nilai, dan format semula. PILIHAN MAPPING menambahkan
+empat kolom Q:T setelah 16 kolom lama. Kolom tambahan memiliki wrap text;
+filter diperluas mengikuti tambahan kolom/baris. Sheet lain tidak diubah.
+
+### Validasi perluasan ini
+
+- 22 pengujian unit lulus, mencakup variasi nama terbatas, konflik/provinsi
+  kosong, ID master salah lokasi/tidak ada, alternatif ID aman dan ambigu,
+  serta input helper yang tetap tidak dimutasi. Regresi pipeline memeriksa
+  keenam contoh audit dan seluruh contoh yang dibahas sebelumnya.
+- Pipeline final selesai; seluruh 28 CSV nonkandidat identik terhadap baseline.
+  Semua keputusan mapping, update, duplikat, dan ID sumber tetap sama.
+- Baris kandidat/informasi review berubah dari 71.548 menjadi 79.685.
+  Urutan/tujuan kandidat tingkat sama berubah untuk 10.267 record pipeline.
+- Workbook memperbarui 36.829 sel kandidat lama pada 10.237 record. Sebanyak
+  180.869 sel metadata ditambahkan/diisi pada 25.070 record. Perbedaan jumlah
+  record pipeline/workbook terjadi karena workbook menampilkan tiga pilihan
+  pertama dan jumlah total, sedangkan pipeline menyimpan seluruh kandidat.
+- Semua kandidat tingkat sama mempunyai status dan penjelasan ID. Dari 72.131
+  baris kandidat tingkat sama, 5.271 slot memiliki satu alternatif ID yang
+  lolos verifikasi hierarki untuk review; angka ini bukan jumlah record unik
+  dan tidak berarti penetapan canonical atau ID final otomatis.
+- Jakbar mengarah Kota Jakarta Barat dan Buntok ke Dusun Selatan. Martapura dan
+  Lohong muncul sebagai lokasi cocok dengan ID sumber/master terpisah untuk
+  verifikasi induk. Cintaasih menjelaskan konflik kota langsung versus lookup
+  kecamatan. Hutanagodang mempertahankan Muara dan Purbatua; ID Muara Tapanuli
+  Utara tetap kosong karena belum terverifikasi, disertai penjelasan.
+- Validasi workbook membandingkan XML terlindungi dan semua nilai kandidat
+  terhadap CSV, memeriksa tambahan kolom, 15 sheet dengan urutan tetap,
+  jumlah/urutan record sumber, input client dan dropdown, serta tidak adanya
+  formula atau ID final baru. 13 sheet lainnya identik.
+
+Penerapan ulang pada workbook yang sudah diperbarui menghasilkan nol perubahan
+sel kandidat maupun metadata; kolom tambahan tidak terduplikasi.
