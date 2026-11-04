@@ -7,6 +7,7 @@ MAPPING_HEADERS = ['Objek','Id_Sumber','Nama_Sumber','Urutan','Nama_Rekomendasi'
                    'Catatan_Rekomendasi','Sumber_Data','Tingkat_Ditemukan','Jumlah_Lokasi']
 
 STATUS_TEXT = {
+    'KOTA_SUMBER_PERLU_KONFIRMASI': ('Kabupaten/kota perlu dikonfirmasi','Nama kecamatan sesuai master. Pastikan perubahan kabupaten/kota pada data ini.'),
     'ID_TERVERIFIKASI': ('ID sesuai lokasi','ID ini sesuai dengan lokasi rekomendasi.'),
     'ID_ALTERNATIF_TERVERIFIKASI_UNTUK_REVIEW': ('Perlu konfirmasi ID utama','Nama dan lokasi rekomendasi sesuai master. Client perlu memastikan ID yang akan digunakan.'),
     'ID_MASTER_AMBIGU': ('Perlu pilih satu ID','Ada beberapa ID untuk lokasi ini. Client perlu memilih ID yang akan digunakan.'),
@@ -94,6 +95,15 @@ def client_candidate(d):
             note='Nama mirip dengan data sumber. Client perlu memastikan lokasinya.'
         elif 'Nama sama' in reason:
             note='Nama cocok dengan nama pada master.'
+    if reason.startswith('Nama kecamatan sama pada master, tetapi kota/kabupaten berbeda:'):
+        status='Kabupaten/kota perlu dikonfirmasi'
+        note=reason
+        if 'Induk/leluhur record sumber masih perlu konfirmasi.' in d.get('Alasan_Verifikasi_ID',''):
+            note+=' Provinsi data sumber juga perlu dipastikan.'
+        if not target and chosen and chosen!=d['Id_Sumber']:
+            note+=' '+STATUS_TEXT[raw_status][1]
+            if len(ids)>1:status='Perlu pilih satu ID'
+        if not chosen:note+=' ID untuk lokasi ini belum dipastikan.'
     if d.get('Jenis_Rekomendasi')=='KOREKSI_RECORD_YANG_SAMA' and chosen==d['Id_Sumber']:
         note+=' ID ini sama dengan ID sumber. Perbaiki data tersebut jika lokasinya benar.'
     if d.get('Jenis_Rekomendasi')=='LOKASI_DENGAN_INDUK_SUMBER_BELUM_DIKETAHUI':

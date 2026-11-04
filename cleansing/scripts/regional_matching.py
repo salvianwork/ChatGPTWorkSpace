@@ -133,17 +133,16 @@ def district_context_candidates(name, parent, kelurahan_paths):
 
 
 def city_context_candidates(name, parent, district_paths, kelurahan_paths=()):
-    """Suggest cities from exact lower-level names within the known province.
+    """Suggest cities from exact lower-level names.
 
-    Preserve every distinct city when ambiguous; never infer the province.
-    These proposals do not determine whether the source's level is correct.
+    Restrict known provinces. With unknown province, allow only one distinct
+    city across all exact master hits, with explicit confirmation still needed.
+    Source relationships and automatic mapping are never changed.
     """
-    if parent is None:
-        return []
     found = {}
     for level, paths, label in [(2, district_paths, 'Kecamatan'), (3, kelurahan_paths, 'Kelurahan')]:
         for path in sorted(paths):
-            if path[:1] != parent or normalize(path[-1], level) != normalize(name, level):
+            if (parent is not None and path[:1] != parent) or normalize(path[-1], level) != normalize(name, level):
                 continue
             city = path[:2]
             reason = (
@@ -154,7 +153,29 @@ def city_context_candidates(name, parent, district_paths, kelurahan_paths=()):
                 'ID tujuan final tidak ditetapkan otomatis; perlu dikonfirmasi.'
             )
             found.setdefault(city, reason)
+    if parent is None and len(found) != 1:
+        return []
+    if parent is None:
+        found = {p: reason + ' Provinsi pada data sumber belum diketahui dan perlu dikonfirmasi.' for p,reason in found.items()}
     if len(found) > 1:
         found = {p: reason + ' Ambigu: terdapat lebih dari satu kota/kabupaten dalam provinsi ini.'
                  for p, reason in found.items()}
     return list(found.items())
+
+
+def district_other_city_candidates(name, parent, district_paths):
+    """Exact district name in another city of the same known province, review only."""
+    if parent is None or len(parent) != 2:
+        return []
+    hits=sorted({p for p in district_paths if normalize(p[-1],2)==normalize(name,2)})
+    if any(p[:-1]==parent for p in hits):
+        return []
+    matches=[p for p in hits if p[:1]==parent[:1] and p[:-1]!=parent]
+    result=[]
+    for path in matches:
+        reason=('Nama kecamatan sama pada master, tetapi kota/kabupaten berbeda: '
+                + ' | '.join(path) + '. Kabupaten/kota pada data sumber adalah '
+                + parent[-1] + '. Client perlu memastikan perubahan kabupaten/kota.')
+        if len(matches)>1:reason+=' Nama ini ada di beberapa kabupaten/kota pada provinsi yang sama. Pilih lokasi yang benar.'
+        result.append((path,reason))
+    return result

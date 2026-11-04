@@ -64,6 +64,15 @@ def check(old, new):
                 assert candidate['Status_Verifikasi_ID'] and candidate['Alasan_Verifikasi_ID']
                 if candidate['Id_Target_Kandidat']:
                     assert candidate['Status_Verifikasi_ID'] in {'ID_TERVERIFIKASI','ID_ALTERNATIF_TERVERIFIKASI_UNTUK_REVIEW'}
+    timur=groups['a1ofC0000004iFaQAI'][0]
+    assert timur['Nama_Kandidat']=='Kota Bogor' and timur['Hierarki_Kandidat']=='Jawa Barat | Kota Bogor'
+    assert timur['Id_Target_Kandidat']=='a1oJ40000009JOfIAM'
+    assert 'Kecamatan: Jawa Barat | Kota Bogor | Bogor Timur' in timur['Alasan']
+    barat=groups['a1pJ40000008X21IAE'][0]
+    assert barat['Nama_Kandidat']=='Bogor Barat' and barat['Hierarki_Kandidat']=='Jawa Barat | Kota Bogor | Bogor Barat'
+    assert not barat['Id_Target_Kandidat'] and barat['ID_Master_Perlu_Verifikasi']=='a1pJ40000008X21IAE'
+    assert barat['Status_Verifikasi_ID']=='KOTA_SUMBER_PERLU_KONFIRMASI'
+    assert barat['Jenis_Rekomendasi']=='KOREKSI_RECORD_YANG_SAMA'
     # Cross-level evidence remains exactly the same apart from its display rank.
     def evidence(rows):
         return sorted(tuple(sorted((k, v) for k, v in r.items() if k not in {'Urutan','Jenis_Rekomendasi','Status_Verifikasi_ID','Alasan_Verifikasi_ID','ID_Master_Perlu_Verifikasi'}))

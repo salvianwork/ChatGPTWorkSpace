@@ -322,3 +322,54 @@ Penerapan ulang pada susunan baru menghasilkan nol perubahan nilai dan tidak
 menambah kolom atau style. Semua jumlah dan urutan baris tetap sama. Pemeriksaan
 seluruh sheet memastikan tidak ada formula yang bergantung pada kolom yang
 dipindahkan. Pilihan dan format dropdown tetap sama setelah berpindah ke AB.
+
+## Rekomendasi Bogor Timur, Bogor Barat, dan kasus serupa
+
+Kota/Kabupaten tanpa provinsi sumber dapat memperoleh rekomendasi dari nama
+kecamatan/kelurahan yang sama pada master, hanya bila semua bukti nama persis
+tersebut mengarah ke satu kota/kabupaten. Jika bukti mengarah ke beberapa kota,
+aturan ini tidak memilih salah satunya. Provinsi sumber tetap kosong dan perlu
+konfirmasi client. Ini memperluas batasan lama yang menolak semua konteks anak
+saat provinsi sumber kosong, tanpa mengubah lookup sumber atau mapping otomatis.
+
+Contoh Bogor Timur (Kota/Kabupaten), `a1ofC0000004iFaQAI`: bukti master
+`Jawa Barat | Kota Bogor | Bogor Timur` menghasilkan rekomendasi Kota Bogor,
+ID `a1oJ40000009JOfIAM`. Catatan menyebut bahwa Bogor Timur merupakan kecamatan
+dalam Kota Bogor dan meminta client memastikan tingkat serta provinsi sumber.
+
+Kecamatan yang belum cocok dalam kabupaten/kota sumber juga dicari menurut
+nama yang sama pada master kecamatan di kabupaten/kota lain pada provinsi yang
+sama. Aturan ini tidak mencari ke provinsi lain dan tidak menggantikan kecocokan
+nama yang sudah ada dalam kabupaten/kota sumber. Jika beberapa lokasi cocok,
+semuanya ditampilkan dan client diminta memilih. Kandidat nama persis ini lebih
+diutamakan daripada nama kecamatan yang hanya mirip ejaannya.
+
+Contoh Bogor Barat (Kecamatan), `a1pJ40000008X21IAE`: data sumber masih tercatat
+di Kab. Bogor, sedangkan master menemukan `Jawa Barat | Kota Bogor | Bogor Barat`.
+Rekomendasi sekarang memakai lokasi tersebut dengan catatan perbedaan kota.
+Karena belum ada ID utama yang terverifikasi untuk lokasi master itu, ID sumber
+yang memang bernama Bogor Barat dapat ditampilkan sebagai ID yang perlu
+konfirmasi untuk perbaikan kabupaten/kotanya. ID tersebut tidak dijadikan ID
+tujuan terverifikasi atau ID final secara otomatis. Jika sudah tersedia ID
+rekomendasi yang sesuai, ID itu tetap diprioritaskan. Peringatan untuk ID master
+lain yang belum jelas tetap ditampilkan dan tidak disembunyikan oleh catatan kota.
+
+Validasi versi ini:
+
+- 34 pengujian unit lulus, termasuk provinsi kosong, nama di beberapa kota,
+  nama di provinsi lain, larangan pencocokan sebagian kata, dan kecocokan
+  dalam kota sumber yang harus dipertahankan.
+- Generator dan penerjemahan selesai. Seluruh 28 CSV nonkandidat identik terhadap
+  baseline: ID sumber, status mapping, usulan update, dan duplikat tetap sama.
+- Rekomendasi tingkat sama berubah untuk 202 record. Workbook memperbarui 1.584
+  sel kandidat pada 202 record. Jumlah baris kandidat/informasi review berubah
+  dari 79.685 menjadi 79.741; jumlah dan urutan record sumber tidak berubah.
+- Semua 79.741 penjelasan rekomendasi lulus pemeriksaan bahasa sederhana.
+  Susunan 35 kolom DATA BELUM JELAS dan 12 kolom PILIHAN MAPPING tetap sama.
+- Validator memeriksa setiap rekomendasi terhadap CSV, seluruh ID/nama sumber,
+  nilai dan style input client, dropdown, urutan sheet, serta 13 sheet lain
+  yang tetap identik. ID final tidak diisi otomatis.
+
+Penerapan ulang pada hasil Bogor dan kasus serupa menghasilkan nol perubahan
+sel tambahan. Tidak ada kolom baru atau formula baru. Semua rekomendasi pada
+workbook sesuai CSV yang sudah divalidasi, termasuk Bogor Timur dan Bogor Barat.

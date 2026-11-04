@@ -78,6 +78,23 @@ class RegionalReviewTests(unittest.TestCase):
             self.assertEqual(out['Candidate_Target_Id'],'')
             self.assertIn('MASTER',out['ID_Verification'])
 
+    def test_different_city_can_suggest_correcting_source_id(self):
+        source=self.source('bogor-west',('Jawa Barat','Kab. Bogor','Bogor Barat'))
+        source['_path']=None
+        source['_parent']=('Jawa Barat','Kab. Bogor')
+        candidate=('Jawa Barat','Kota Bogor','Bogor Barat')
+        before=copy.deepcopy(source)
+        result=candidate_id_review(source,candidate,self.inventory(),{},[],
+            'Nama kecamatan sama pada master, tetapi kota/kabupaten berbeda: Jawa Barat | Kota Bogor | Bogor Barat')
+        self.assertEqual(result['Candidate_Target_Id'],'')
+        self.assertEqual(result['Unverified_Master_ID'],'bogor-west')
+        self.assertEqual(result['Review_Kind'],'KOREKSI_RECORD_YANG_SAMA')
+        self.assertEqual(result['ID_Verification'],'KOTA_SUMBER_PERLU_KONFIRMASI')
+        self.assertEqual(source,before)
+        wrong=candidate_id_review(source,('Banten','Kota Bogor','Bogor Barat'),self.inventory(),{},[],
+            'Nama kecamatan sama pada master, tetapi kota/kabupaten berbeda: test')
+        self.assertEqual(wrong['Unverified_Master_ID'],'')
+
 
 if __name__ == '__main__':
     unittest.main()

@@ -96,7 +96,7 @@ def check(before,after,candidates):
     old=openpyxl.load_workbook(before,read_only=True);w=openpyxl.load_workbook(after,read_only=True)
     assert w.sheetnames==old.sheetnames
     for sheet in w:
-        assert sheet.max_row==old[sheet.title].max_row
+        if sheet.title!='PILIHAN MAPPING':assert sheet.max_row==old[sheet.title].max_row
         if sheet.title not in ['DATA BELUM JELAS','PILIHAN MAPPING']:assert sheet.max_column==old[sheet.title].max_column
     assert w['DATA BELUM JELAS'].max_column==35 and w['PILIHAN MAPPING'].max_column==12
     it=w['PILIHAN MAPPING'].values;assert list(next(it))==MAPPING_HEADERS
@@ -105,7 +105,7 @@ def check(before,after,candidates):
     assert headers[:11]==oldheaders[:11]
     assert list(headers[11:27])==['Jumlah_Rekomendasi']+CHOICE_HEADERS
     assert headers[27:35]==oldheaders[old_client-1:old_client+7]
-    samples=[];watched={'a1pJ40000008XVWIA2','a1nJ4000000KUKFIA4','a1pJ40000008XDhIAM','a1nfC00000VF9PmQAL','a1ofC000001vBcaQAE','a1pJ40000008X4aIAE'}
+    samples=[];watched={'a1pJ40000008XVWIA2','a1nJ4000000KUKFIA4','a1pJ40000008XDhIAM','a1nfC00000VF9PmQAL','a1ofC000001vBcaQAE','a1pJ40000008X4aIAE','a1ofC0000004iFaQAI','a1pJ40000008X21IAE'}
     banned=re.compile(r'\b(record|lookup|hierarki|leluhur|pemulihan|verifikasi|canonical|deterministik|hipotesis|ambigu)\b',re.I)
     for row,oldrow in zip(it,oldit,strict=True):
         cs=groups[row[1]];assert row[11]==len(cs)

@@ -81,6 +81,13 @@ def candidate_id_review(source, candidate_path, inventory, preferred_records, ma
         else:
             status = 'BELUM_ADA_ID_TERVERIFIKASI'
             explanation = 'Belum ada ID Salesforce terverifikasi untuk hierarki ini. Telusuri ekspor dan master; jangan mengambil ID dari lokasi lain.'
+    if (status == 'BELUM_ADA_ID_TERVERIFIKASI' and reason.startswith('Nama kecamatan sama pada master, tetapi kota/kabupaten berbeda:')
+            and source.get('_parent') and source['_parent'][:1] == candidate_path[:1]
+            and normalize(source['Source_Name'],2) == normalize(candidate_path[-1],2)):
+        unverified = [source['Source_Id']]
+        status = 'KOTA_SUMBER_PERLU_KONFIRMASI'
+        kind = 'KOREKSI_RECORD_YANG_SAMA'
+        explanation = 'Nama kecamatan sesuai master pada kota/kabupaten lain dalam provinsi yang sama. Konfirmasikan perubahan kota/kabupaten pada ID sumber; ID final belum dipilih.'
     if kind == 'KOREKSI_RECORD_YANG_SAMA' and verified and verified != source['Source_Id']:
         kind = 'KANDIDAT_RECORD_TUJUAN'
     if source.get('_blocked'):

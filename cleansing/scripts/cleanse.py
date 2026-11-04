@@ -1,5 +1,5 @@
 from regional_review import candidate_id_review, unknown_parent_city_candidates
-from regional_matching import ranked_candidates, district_context_candidates, city_context_candidates
+from regional_matching import ranked_candidates, district_context_candidates, city_context_candidates, district_other_city_candidates
 import csv,json,re,unicodedata,collections,pathlib,hashlib,zipfile,argparse
 import openpyxl
 import pandas as pd
@@ -164,6 +164,14 @@ for i,rows in enumerate(data):
      extra=[('',p,reason) for p,reason in context]
    for rank,(score,cp,reason) in enumerate(extra,1 if i==2 else 4):
     candidates.append({'Object':objects[i],'Source_Id':rid,'Source_Name':name,'Rank':rank,'Similarity':score,'Candidate_Path':' | '.join(cp),'Candidate_Name':cp[-1],'Reason':reason,'_path':cp,'_level':i})
+  if path is None and i==2:
+   elsewhere=district_other_city_candidates(name,parent,names[2].get(norm(name,2),set()))
+   if elsewhere:
+    candidates=[c for c in candidates if not (c['Source_Id']==rid and c['Reason'].startswith('Kemiripan teks'))]
+    for c in candidates:
+     if c['Source_Id']==rid:c['Rank']+=len(elsewhere)
+    for rank,(cp,reason) in enumerate(elsewhere,1):
+     candidates.append({'Object':objects[i],'Source_Id':rid,'Source_Name':name,'Rank':rank,'Similarity':'','Candidate_Path':' | '.join(cp),'Candidate_Name':cp[-1],'Reason':reason,'_path':cp,'_level':i})
   res.append(out);mapped[rid]=out
  results.append(res);maps.append(mapped)
  print('Mapped',levels[i],len(res),collections.Counter(r['Match_Method'] for r in res),flush=True)

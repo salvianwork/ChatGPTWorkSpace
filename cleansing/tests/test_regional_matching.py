@@ -77,7 +77,7 @@ class RegionalMatchingTests(unittest.TestCase):
         self.assertIn('Kecamatan: Jawa Barat | Kab. Bekasi | Babelan', result[0][1])
         self.assertIn('Jika record dimaksudkan sebagai Kota/Kabupaten', result[0][1])
         self.assertIn('Jika record sebenarnya dimaksudkan sebagai Kecamatan', result[0][1])
-        self.assertEqual(city_context_candidates('Babelan', None, [path]), [])
+        self.assertEqual(city_context_candidates('Babelan', None, [path])[0][0],path[:2])
         self.assertEqual(city_context_candidates('Babelan', ('Banten',), [path]), [])
         self.assertEqual(city_context_candidates('Babel', path[:1], [path]), [])
 
@@ -124,6 +124,30 @@ class RegionalMatchingTests(unittest.TestCase):
         # A conflicting qualifier may still produce a fuzzy suggestion, never an exact one.
         result = ranked_candidates(3, 'Kingking, Kecamatan Lain', parent, [path])
         self.assertFalse(any(r[0] == 0 for r in result))
+
+    def test_unknown_province_unique_child_city_only(self):
+        paths=[('Jawa Barat','Kota Bogor','Bogor Timur')]
+        result=city_context_candidates('Bogor Timur',None,paths)
+        self.assertEqual(result[0][0],('Jawa Barat','Kota Bogor'))
+        self.assertIn('Provinsi pada data sumber belum diketahui',result[0][1])
+        self.assertEqual(city_context_candidates('Bogor Timur',None,paths+[('Provinsi Lain','Kota Lain','Bogor Timur')]),[])
+        self.assertEqual(city_context_candidates('Bogor',None,paths),[])
+
+    def test_exact_district_in_another_city_same_province(self):
+        from regional_matching import district_other_city_candidates
+        path=('Jawa Barat','Kota Bogor','Bogor Barat')
+        parent=('Jawa Barat','Kab. Bogor')
+        result=district_other_city_candidates('Bogor Barat',parent,[path])
+        self.assertEqual(result[0][0],path)
+        self.assertIn('Kab. Bogor',result[0][1]);self.assertIn('Kota Bogor',result[0][1])
+        self.assertEqual(district_other_city_candidates('Bogor',parent,[path]),[])
+        self.assertEqual(district_other_city_candidates('Bogor Barat',None,[path]),[])
+        self.assertEqual(district_other_city_candidates('Bogor Barat',('Banten','Kab. Bogor'),[path]),[])
+        # Do not propose other cities if an exact district already exists under the source parent.
+        self.assertEqual(district_other_city_candidates('Bogor Barat',parent,[path,parent+('Bogor Barat',)]),[])
+        result=district_other_city_candidates('Bogor Barat',parent,[path,('Jawa Barat','Kota Lain','Bogor Barat')])
+        self.assertEqual(len(result),2)
+        self.assertTrue(all('beberapa kabupaten/kota' in reason for _,reason in result))
 
 
 if __name__ == '__main__':

@@ -53,5 +53,22 @@ class ClientDisplayTests(unittest.TestCase):
         a=source_text(*args);b=source_text(a[0],a[1],args[2],None,a[2]);self.assertEqual(a,b)
         self.assertEqual(a[2].split('• Tindak Lanjut:')[0],cross.split('• Tindak Lanjut:')[0])
 
+    def test_other_city_reason_is_visible_and_simple(self):
+        reason='Nama kecamatan sama pada master, tetapi kota/kabupaten berbeda: Jawa Barat | Kota Bogor | Bogor Barat. Kabupaten/kota pada data sumber adalah Kab. Bogor. Client perlu memastikan perubahan kabupaten/kota.'
+        view=client_candidate(self.candidate(Nama_Kandidat='Bogor Barat',Alasan=reason,
+            Id_Target_Kandidat='',ID_Master_Perlu_Verifikasi='source',
+            Status_Verifikasi_ID='KOTA_SUMBER_PERLU_KONFIRMASI',Jenis_Rekomendasi='KOREKSI_RECORD_YANG_SAMA'))
+        self.assertEqual(view[2],'source');self.assertEqual(view[3],'Kabupaten/kota perlu dikonfirmasi')
+        self.assertIn('Kota Bogor',view[4]);self.assertIn('Kab. Bogor',view[4])
+
+    def test_other_city_preserves_pending_id_warning(self):
+        reason='Nama kecamatan sama pada master, tetapi kota/kabupaten berbeda: Jawa Barat | Kota Bogor | Bogor Barat.'
+        view=client_candidate(self.candidate(Alasan=reason,Id_Target_Kandidat='',
+            ID_Master_Perlu_Verifikasi='another',Status_Verifikasi_ID='ID_MASTER_BERBEDA_HIERARKI'))
+        self.assertIn('ID pada master mengarah ke lokasi lain',view[4])
+        view=client_candidate(self.candidate(Alasan=reason,Id_Target_Kandidat='',
+            ID_Master_Perlu_Verifikasi='one;two',Status_Verifikasi_ID='ID_MASTER_AMBIGU'))
+        self.assertEqual(view[3],'Perlu pilih satu ID')
+
 
 if __name__=='__main__':unittest.main()
