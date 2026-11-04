@@ -425,3 +425,57 @@ Validasi versi ini:
 Penerapan ulang hasil daftar unik menghasilkan nol perubahan sel tambahan.
 Perbandingan juga memastikan ID rekomendasi yang masih perlu konfirmasi tetap
 tercakup; yang dihapus hanya pengulangannya, bukan tujuan atau ID yang berbeda.
+
+## Petunjuk perbaikan hubungan wilayah di catatan rekomendasi
+
+Catatan setiap rekomendasi sekarang menjelaskan tindakan pada provinsi,
+kota/kabupaten, atau kecamatan yang terkait. Tidak ada kolom tambahan pada
+workbook: petunjuk berada di Pilihan_1_Catatan, Pilihan_2_Catatan, dan
+Pilihan_3_Catatan, serta Catatan_Rekomendasi pada PILIHAN MAPPING.
+
+- Hubungan yang kosong: "Lengkapi kecamatan dengan Paseh, ID ...".
+- ID yang berbeda dari lokasi rekomendasi: "Ubah kabupaten/kota menjadi ..., ID ...".
+- Hubungan yang sudah sesuai: disebutkan agar client tidak mengubahnya.
+- ID wilayah yang belum dipastikan: minta pemeriksaan; jangan menebak ID dari
+  nama atau memakai ID lokasi lain.
+- Bila ID rekomendasi sama dengan sumber dan nama cocok, petunjuk menyebutkan
+  bahwa data yang sama dapat digunakan setelah client memastikan lokasinya.
+- Bila ID rekomendasi berbeda, petunjuk selalu bersyarat pada pemilihan lokasi
+  rekomendasi tersebut. Peringatan ID yang belum jelas dan kemungkinan perbedaan
+  tingkat wilayah tetap dipertahankan.
+
+Contoh sumber Legok Kidul `a1nJ4000000Kc2yIAC`, pada Pilihan_1_Catatan:
+
+> Setelah client memastikan lokasi:
+> • Lengkapi kecamatan dengan Paseh, ID a1pJ40000008XggIAE.
+> • Kabupaten Sumedang sudah sesuai.
+> • Gunakan ID sumber yang sama.
+
+Petunjuk membaca ID yang benar-benar tercatat pada data sumber dan hanya
+mengusulkan ID parent yang sudah lolos pemeriksaan seluruh lokasi pada master.
+Kolom Id_Induk_Sekarang dan Id_Kota_Langsung_Sekarang tetap berisi kondisi saat
+ini. Id_Induk_Final_Client tetap menjadi tempat keputusan client dan tidak
+diisi otomatis. Kelurahan diperiksa untuk dua hubungan berbeda: kecamatan
+langsung serta kota/kabupaten langsung. Kota/Kabupaten dan Kecamatan diperiksa
+menurut tingkat wilayah di atasnya masing-masing. Provinsi tidak diberi parent.
+
+`regional_parent_actions.py` menyusun petunjuk tanpa mengubah data sumber,
+lookup, ID utama, atau keputusan mapping. Dua field tambahan hanya berada di
+CSV internal: Petunjuk_Perbaikan_Wilayah dan Perlu_Perbaikan_Wilayah. Helper
+memerlukan CSV terbaru dengan field tersebut agar petunjuk tidak hilang jika
+workbook diterapkan ulang memakai keluaran lama.
+
+Validasi versi ini:
+
+- 47 pengujian unit lulus, termasuk hubungan kosong, hubungan berbeda, hubungan
+  benar, ID parent belum ada, calon lokasi lain, jenis parent tiap tingkat,
+  petunjuk bersyarat, dan peringatan ID yang tidak boleh dihilangkan.
+- Generator/penerjemahan berhasil. Seluruh 28 CSV nonkandidat identik, dan semua
+  field kandidat yang sudah ada juga identik. Nama, lokasi, urutan, ID, status
+  rekomendasi, serta keputusan mapping tidak berubah.
+- Semua 59.653 baris penjelasan rekomendasi lulus pemeriksaan bahasa sederhana.
+  Workbook memperbarui 44.119 sel catatan pada 25.171 record, tanpa kolom baru.
+- Jumlah/urutan record sumber dan semua sheet tetap sama. Input client,
+  dropdown, ID sumber, dan 13 sheet lain tetap sama; tanpa formula atau ID
+  final baru. Semua nilai workbook sesuai keluaran script.
+- Penerapan ulang menghasilkan nol perubahan tambahan.

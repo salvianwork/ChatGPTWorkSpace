@@ -18,6 +18,10 @@ def check(old, new):
         assert read(old, filename) == read(new, filename), filename
     before = read(old, 'Review_candidates.csv')
     after = read(new, 'Review_candidates.csv')
+    if before and 'Petunjuk_Perbaikan_Wilayah' not in before[0] and 'Petunjuk_Perbaikan_Wilayah' in after[0]:
+        for previous,current in zip(before,after,strict=True):
+            assert all(current[k]==v for k,v in previous.items()),previous['Id_Sumber']
+        print('Parent instructions only: all existing candidate CSV fields unchanged.')
     groups = defaultdict(list)
     oldgroups = defaultdict(list)
     for row in before:
@@ -73,9 +77,15 @@ def check(old, new):
     assert not barat['Id_Target_Kandidat'] and barat['ID_Master_Perlu_Verifikasi']=='a1pJ40000008X21IAE'
     assert barat['Status_Verifikasi_ID']=='KOTA_SUMBER_PERLU_KONFIRMASI'
     assert barat['Jenis_Rekomendasi']=='KOREKSI_RECORD_YANG_SAMA'
+    legok=groups['a1nJ4000000Kc2yIAC'][0]
+    assert legok['Nama_Kandidat']=='Legok Kidul'
+    assert 'Lengkapi kecamatan dengan Paseh, ID a1pJ40000008XggIAE.' in legok['Petunjuk_Perbaikan_Wilayah']
+    assert 'Kabupaten Sumedang sudah sesuai.' in legok['Petunjuk_Perbaikan_Wilayah']
+    assert 'Gunakan ID sumber yang sama.' in legok['Petunjuk_Perbaikan_Wilayah']
+    assert legok['Perlu_Perbaikan_Wilayah']=='YES'
     # Cross-level evidence remains exactly the same apart from its display rank.
     def evidence(rows):
-        return sorted(tuple(sorted((k, v) for k, v in r.items() if k not in {'Urutan','Jenis_Rekomendasi','Status_Verifikasi_ID','Alasan_Verifikasi_ID','ID_Master_Perlu_Verifikasi'}))
+        return sorted(tuple(sorted((k, v) for k, v in r.items() if k not in {'Urutan','Jenis_Rekomendasi','Status_Verifikasi_ID','Alasan_Verifikasi_ID','ID_Master_Perlu_Verifikasi','Petunjuk_Perbaikan_Wilayah','Perlu_Perbaikan_Wilayah'}))
                       for r in rows if r['Jenis_Bukti'] == 'TEMUAN_LINTAS_TINGKAT')
     assert evidence(before) == evidence(after)
     def destinations(rows):

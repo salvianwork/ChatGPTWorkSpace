@@ -108,6 +108,13 @@ def client_candidate(d):
         note+=' ID ini sama dengan ID sumber. Perbaiki data tersebut jika lokasinya benar.'
     if d.get('Jenis_Rekomendasi')=='LOKASI_DENGAN_INDUK_SUMBER_BELUM_DIKETAHUI':
         status='Wilayah sumber perlu dikonfirmasi'
+    parent_note=d.get('Petunjuk_Perbaikan_Wilayah','')
+    if parent_note:
+        can_replace=(chosen==d['Id_Sumber'] and d.get('Perlu_Perbaikan_Wilayah')=='YES'
+                     and not context and raw_status in {'RECORD_TERSEDIA_BELUM_TERVERIFIKASI',
+                         'INDUK_ID_MASTER_PERLU_KONFIRMASI','KOTA_SUMBER_PERLU_KONFIRMASI',
+                         'KONFLIK_RELASI_ID_MASTER','ID_TERVERIFIKASI'})
+        note=parent_note if can_replace else note+'\n\n'+parent_note
     return [d['Nama_Kandidat'],d['Hierarki_Kandidat'],chosen,status,note]
 
 
