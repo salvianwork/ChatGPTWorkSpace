@@ -479,3 +479,71 @@ Validasi versi ini:
   dropdown, ID sumber, dan 13 sheet lain tetap sama; tanpa formula atau ID
   final baru. Semua nilai workbook sesuai keluaran script.
 - Penerapan ulang menghasilkan nol perubahan tambahan.
+
+## Data wilayah benar dengan penetapan ID utama yang masih menunggu client
+
+Lawang Agung `a1nJ4000000Kc3PIAS` sudah memiliki nama, kecamatan Pasemah Air
+Keruh, dan hubungan langsung ke Kabupaten Empat Lawang yang sesuai master.
+Data tersebut tidak memerlukan perubahan wilayah. Pilihan ID utama tetap
+terpisah karena ID lain yang tercantum pada master memiliki hubungan wilayah
+yang berbeda. ID lain tersebut tetap berada di DATA BELUM JELAS.
+
+`regional_validity.py` menandai keadaan ini setelah pemeriksaan ID utama selesai,
+tanpa mengubah Status, Tindakan, Id_Target, daftar perubahan, atau keputusan
+mapping. Dua field keluaran internal ditambahkan:
+
+- Status_Validasi_Wilayah: VALID_WILAYAH_MENUNGGU_ID_UTAMA.
+- Status_Penetapan_ID_Utama: MENUNGGU_KONFIRMASI_CLIENT.
+
+Syaratnya: nama persis sama dengan master, lokasi cocok persis, ID hubungan
+wilayah saat ini sama dengan ID induk master yang sudah dipastikan, dan tidak
+ada hubungan yang ditebak dari nama atau masalah hubungan yang belum selesai.
+Kelurahan wajib cocok untuk kecamatan dan kota/kabupaten langsung sekaligus.
+Data yang memerlukan perubahan nama, hubungan kosong/berbeda, atau hubungan
+yang baru diperkirakan tetap diperiksa oleh client. Contohnya Legok Kidul
+`a1nJ4000000Kc2yIAC` dan Cintaasih `a1nJ4000000KUKFIA4` tetap di DATA BELUM JELAS.
+
+`reclassify_valid_regions.py` memindahkan data yang memenuhi syarat ke sheet
+VALID sesuai tingkatnya. Kolom valid yang sudah ada tetap digunakan, dengan
+penjelasan bahwa wilayah sudah sesuai dan ID utama masih menunggu konfirmasi
+client. Keputusan dapat dicatat pada Catatan_Pemeriksaan. Baris rekomendasi
+untuk data yang dipindahkan dihapus dari PILIHAN MAPPING. Bila salah satu
+isian client di DATA BELUM JELAS sudah terisi, pemindahan ditunda sehingga
+keputusan dan catatan client tidak hilang.
+
+RINGKASAN memperbarui Sudah_Benar dan Data_Lain_Belum_Jelas. Kolom tambahan
+Valid_Menunggu_ID_Utama menunjukkan bagian dari Sudah_Benar yang masih
+memerlukan konfirmasi ID utama; angka ini bukan tambahan jumlah record.
+Tidak ada ID final client atau ID utama yang ditetapkan otomatis.
+
+Hasil pada data saat ini:
+
+- 1.059 kelurahan dipindahkan, termasuk Lawang Agung. Tidak ada isian client
+  yang menghalangi pemindahan pada workbook ini.
+- VALID KELURAHAN: 46.246 menjadi 47.305 data.
+- DATA BELUM JELAS: 27.187 menjadi 26.128 data.
+- PILIHAN MAPPING: 59.653 menjadi 58.594 baris penjelasan.
+- Seluruh field lama pada 28 CSV nonkandidat identik; seluruh 59.653 baris
+  kandidat internal identik. Hanya dua field status wilayah di atas ditambahkan
+  pada keluaran pipeline. CSV sumber dan workbook master tidak diubah.
+- 51 pengujian unit lulus. `check_valid_region_reclassification.py` memeriksa
+  seluruh record sumber, ID, hubungan wilayah, urutan data tersisa, data valid
+  lama, ringkasan, input client beserta format/dropdown, dan ketiadaan formula.
+- Workbook dapat dibuka, jumlah dan urutan 15 sheet tetap sama, 11 sheet lain
+  identik. Selain workbook regional, tidak ada workbook/ZIP/CSV sumber yang
+  diubah.
+- Penerapan ulang menghasilkan nol perubahan nilai sel atau format dan nol
+  pemindahan tambahan. Tidak ada rekomendasi yang kembali untuk data yang
+  sudah dipindahkan. Catatan client pada sheet VALID tetap dipertahankan.
+- Simulasi dengan catatan client terisi pada Lawang Agung menunda satu
+  pemindahan tersebut, memindahkan 1.058 data lainnya, dan mempertahankan
+  catatan, ID, format, dropdown, serta urutan seluruh data yang tersisa.
+
+Contoh pemeriksaan workbook setelah menjalankan generator dan penerjemah:
+
+```sh
+python cleansing/tests/check_valid_region_reclassification.py \
+  /tmp/regional-valid-before.xlsx \
+  'cleansing/client_review/Mandatory for Client/02_REVIEW_CLIENT_DATA_REGIONAL.xlsx' \
+  /tmp/regional-valid-new
+```

@@ -15,7 +15,11 @@ def read(root, filename):
 def check(old, new):
     filenames = [p.name for p in old.rglob('*.csv') if p.name != 'Review_candidates.csv']
     for filename in filenames:
-        assert read(old, filename) == read(new, filename), filename
+        previous,current=read(old,filename),read(new,filename)
+        assert len(previous)==len(current),filename
+        for a,b in zip(previous,current,strict=True):
+            assert all(b[k]==v for k,v in a.items()),filename
+            assert set(b)-set(a) <= {'Status_Validasi_Wilayah','Status_Penetapan_ID_Utama'},filename
     before = read(old, 'Review_candidates.csv')
     after = read(new, 'Review_candidates.csv')
     if before and 'Petunjuk_Perbaikan_Wilayah' not in before[0] and 'Petunjuk_Perbaikan_Wilayah' in after[0]:
@@ -104,7 +108,7 @@ def check(old, new):
     bekasi=[r for r in groups['a1ofC000002XjI9QAK'] if r['Jenis_Bukti']=='KANDIDAT_OBJEK_SAMA']
     assert len(bekasi)==1 and bekasi[0]['Nama_Kandidat']=='Kab. Bekasi'
     changed = sum(destinations(groups[rid]) != destinations(oldgroups[rid]) for rid in groups.keys() | oldgroups.keys())
-    print('All non-candidate CSVs identical:', len(filenames))
+    print('All prior fields in non-candidate CSVs unchanged:',len(filenames))
     print('Candidate rows before/after:', len(before), len(after))
     print('Sources with changed ordered same-level recommendations:', changed)
     print('All source records, IDs, mapping decisions, updates, duplicates and cross-level evidence unchanged.')

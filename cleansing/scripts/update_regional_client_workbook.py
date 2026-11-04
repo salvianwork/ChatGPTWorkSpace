@@ -1,6 +1,6 @@
 """Apply validated review CSV to the regional workbook, preserving client inputs.
 
-Only DATA BELUM JELAS and PILIHAN MAPPING are edited. Review metadata columns
+Review sheets, affected valid sheets, and summary counts are updated. Review columns
 are grouped beside each choice. Client inputs move together with their dropdown references.
 """
 import argparse
@@ -17,6 +17,7 @@ from zipfile import ZipFile
 
 from lxml import etree as E
 from openpyxl.utils import get_column_letter, column_index_from_string, range_boundaries as openpyxl_range
+from reclassify_valid_regions import existing_pending_ids, reclassify
 from regional_review import REVIEW_FIELDS
 from regional_parent_actions import PARENT_REVIEW_FIELDS
 from regional_client_display import CHOICE_HEADERS, MAPPING_HEADERS, client_candidate, mapping_row, source_text, ensure_selection_matches
@@ -33,7 +34,7 @@ PURPOSES = {'KANDIDAT_OBJEK_SAMA':'Pilihan mapping yang masih perlu dikonfirmasi
             'BELUM_DITEMUKAN':'Belum ditemukan nama yang sama'}
 
 
-def apply(workbook, candidates, backup):
+def _apply_notes(workbook, candidates, backup):
     assert not backup.exists(), 'Backup already exists; choose a new path.'
     assert workbook.resolve() != backup.resolve()
     with candidates.open(encoding='utf-8-sig', newline='') as f:
@@ -68,6 +69,12 @@ def apply(workbook, candidates, backup):
             text=c.findtext('m:v',namespaces=NS)
             if c.get('t')=='s':return strings[int(text)]
             return int(text) if text and c.get('t') is None and text.isdigit() else text
+        already_valid=existing_pending_ids(z,value)
+        if already_valid:
+            records=[d for d in records if d['Id_Sumber'] not in already_valid]
+            groups=defaultdict(list)
+            for d in records:
+                if d['Jenis_Bukti']=='KANDIDAT_OBJEK_SAMA':groups[d['Id_Sumber']].append(d)
         def put(c,v):
             for e in list(c):c.remove(e)
             c.attrib.pop('t',None)
@@ -217,12 +224,30 @@ def apply(workbook, candidates, backup):
             'mapping_rows_before':before_count,'mapping_rows_after':len(records),'backup':str(backup)}
 
 
+def apply(workbook,candidates,backup,records_root=None):
+    """Prepare notes and classification in a temporary workbook, commit atomically."""
+    assert not backup.exists(), 'Backup already exists; choose a new path.'
+    assert workbook.resolve()!=backup.resolve()
+    with tempfile.NamedTemporaryFile(prefix='regional-client-',suffix='.xlsx',dir=workbook.parent,delete=False) as f:prepared=Path(f.name)
+    try:
+        shutil.copy2(workbook,prepared)
+        report=_apply_notes(prepared,candidates,backup)
+        classification=reclassify(prepared,records_root or candidates.parent.parent)
+        report['valid_region_reclassification']=classification
+        if classification.get('enabled'):report['mapping_rows_after']=classification['mapping_rows_after']
+        with ZipFile(prepared) as check:assert check.testzip() is None
+        prepared.replace(workbook)
+        return report
+    finally:prepared.unlink(missing_ok=True)
+
+
 if __name__=='__main__':
     parser=argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--workbook',type=Path,required=True)
     parser.add_argument('--candidates',type=Path,required=True)
     parser.add_argument('--backup',type=Path,required=True,help='New backup path outside the checkout')
     parser.add_argument('--report',type=Path)
-    args=parser.parse_args();report=apply(args.workbook,args.candidates,args.backup)
+    parser.add_argument('--records-root',type=Path,help='Translated pipeline directory; defaults to the candidate CSV grandparent')
+    args=parser.parse_args();report=apply(args.workbook,args.candidates,args.backup,args.records_root)
     if args.report:args.report.write_text(json.dumps(report,ensure_ascii=False,indent=2))
     print(json.dumps(report,ensure_ascii=False,indent=2))

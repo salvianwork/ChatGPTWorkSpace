@@ -1,3 +1,4 @@
+from regional_validity import valid_region_pending_primary, PENDING_REGION, PENDING_PRIMARY
 from regional_parent_actions import parent_action_note
 from regional_review import candidate_id_review, unknown_parent_city_candidates, unique_review_candidates
 from regional_matching import ranked_candidates, district_context_candidates, city_context_candidates, district_other_city_candidates
@@ -234,6 +235,12 @@ for i in range(4):
    r['Status']='CANONICAL_UPDATE_PROPOSED' if change else 'VALID_CANONICAL'
    r['Action']='UPDATE_AFTER_REVIEW' if change else 'KEEP'
    if change:updates.append({'Object':objects[i],'Id':tid,**change,'Original_Name':r['Source_Name'],'Original_Parent_Id':r['Source_Parent_Id'],'Original_Direct_City_Id':r['Source_Direct_City_Id'],'Master_Path':' | '.join(p)})
+# Region quality and canonical-ID choice are independent facts.
+for rs in results:
+ for r in rs:
+  valid=valid_region_pending_primary(r,targets)
+  r['Region_Validation']=PENDING_REGION if valid else ''
+  r['Primary_ID_Decision']=PENDING_PRIMARY if valid else ''
 candidate_keys={(c['Source_Id'],c['_path']) for c in candidates}
 for i,rs in enumerate(results):
  for r in rs:
