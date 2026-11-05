@@ -114,7 +114,7 @@ def check(before,after,candidates):
     assert headers[:11]==oldheaders[:11]
     assert list(headers[11:27])==['Jumlah_Rekomendasi']+CHOICE_HEADERS
     assert headers[27:35]==oldheaders[old_client-1:old_client+7]
-    samples=[];watched={'a1pJ40000008XVWIA2','a1nJ4000000KUKFIA4','a1pJ40000008XDhIAM','a1nfC00000VF9PmQAL','a1ofC000001vBcaQAE','a1pJ40000008X4aIAE','a1ofC0000004iFaQAI','a1pJ40000008X21IAE','a1ofC000002XjI9QAK','a1nJ4000000Kc2yIAC'}
+    samples=[];watched={'a1pJ40000008XVWIA2','a1nJ4000000KUKFIA4','a1pJ40000008XDhIAM','a1nfC00000VF9PmQAL','a1ofC000001vBcaQAE','a1pJ40000008X4aIAE','a1ofC0000004iFaQAI','a1pJ40000008X21IAE','a1ofC000002XjI9QAK','a1nJ4000000Kc2yIAC','a1pJ40000008XEvIAM','a1nfC00000VFAI6QAP','a1nJ4000000KcG8IAK','a1nJ4000000KcG4IAK'}
     banned=re.compile(r'\b(record|lookup|hierarki|leluhur|pemulihan|verifikasi|canonical|deterministik|hipotesis|ambigu)\b',re.I)
     for row,oldrow in zip(it,oldit,strict=True):
         cs=groups[row[1]];assert row[11]==len(cs)

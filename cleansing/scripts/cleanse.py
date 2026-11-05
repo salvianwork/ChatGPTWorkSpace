@@ -1,4 +1,5 @@
 from regional_validity import valid_region_pending_primary, PENDING_REGION, PENDING_PRIMARY
+from regional_id_explanations import IDExplanation
 from regional_parent_actions import parent_action_note
 from regional_review import candidate_id_review, unknown_parent_city_candidates, unique_review_candidates
 from regional_matching import ranked_candidates, district_context_candidates, city_context_candidates, district_other_city_candidates
@@ -254,10 +255,12 @@ review_sources=[collections.defaultdict(list) for _ in levels]
 for i,rs in enumerate(results):
  for r in rs:
   if r['_path']:review_sources[i][r['_path']].append(r)
+id_explanations=IDExplanation(maps,targets)
 for c in candidates:
  i=c['_level'];cp=c['_path']
  c.update(candidate_id_review(maps[i][c['Source_Id']],cp,review_inventory[(i,cp)],maps[i],review_sources[i].get(cp,[]),c['Reason']))
  c.update(parent_action_note(maps[i][c['Source_Id']],cp,targets,c['Candidate_Target_Id'] or c['Unverified_Master_ID']))
+ c.update(id_explanations.for_candidate(maps[i][c['Source_Id']],cp,c))
 for c in crosslevel:c['Candidate_Kecamatan_Target_Id']=targets[2].get(c['_path'],'')
 def public(r):return {k:v for k,v in r.items() if not k.startswith('_')}
 def write(name,rows,columns=None):

@@ -109,8 +109,21 @@ def client_candidate(d):
     if d.get('Jenis_Rekomendasi')=='LOKASI_DENGAN_INDUK_SUMBER_BELUM_DIKETAHUI':
         status='Wilayah sumber perlu dikonfirmasi'
     parent_note=d.get('Petunjuk_Perbaikan_Wilayah','')
+    detail=d.get('Penjelasan_ID_Client','')
+    if detail:
+        parent_note=parent_note.replace('Hubungan wilayah untuk lokasi rekomendasi:',
+                                        'Hubungan wilayah pada data sumber untuk pilihan ini:')
+        parent_note=parent_note.replace('Tidak perlu mengubah hubungan wilayah.',
+                                        'Tidak perlu mengubah hubungan wilayah pada data sumber untuk pilihan ini.')
+        if not chosen:
+            note=context or ''
+        elif chosen==d['Id_Sumber'] and d.get('Perlu_Perbaikan_Wilayah')=='YES':
+            note='\n\n'.join(part for part in [context,'ID ini sama dengan ID sumber. Hubungan wilayah masih perlu diperiksa.'] if part)
+            parent_note=parent_note.replace('\n• Gunakan ID sumber yang sama.','')
+        note='\n\n'.join(part for part in [note,detail] if part)
     if parent_note:
         can_replace=(chosen==d['Id_Sumber'] and d.get('Perlu_Perbaikan_Wilayah')=='YES'
+                     and not detail
                      and not context and raw_status in {'RECORD_TERSEDIA_BELUM_TERVERIFIKASI',
                          'INDUK_ID_MASTER_PERLU_KONFIRMASI','KOTA_SUMBER_PERLU_KONFIRMASI',
                          'KONFLIK_RELASI_ID_MASTER','ID_TERVERIFIKASI'})

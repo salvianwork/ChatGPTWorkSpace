@@ -20,6 +20,7 @@ from openpyxl.utils import get_column_letter, column_index_from_string, range_bo
 from reclassify_valid_regions import existing_pending_ids, reclassify
 from regional_review import REVIEW_FIELDS
 from regional_parent_actions import PARENT_REVIEW_FIELDS
+from regional_id_explanations import ID_NOTE_FIELDS
 from regional_client_display import CHOICE_HEADERS, MAPPING_HEADERS, client_candidate, mapping_row, source_text, ensure_selection_matches
 
 NS = {'m': 'http://schemas.openxmlformats.org/spreadsheetml/2006/main'}
@@ -39,7 +40,7 @@ def _apply_notes(workbook, candidates, backup):
     assert workbook.resolve() != backup.resolve()
     with candidates.open(encoding='utf-8-sig', newline='') as f:
         reader=csv.DictReader(f)
-        assert set(MAPPING_KEYS + METADATA + list(PARENT_REVIEW_FIELDS.values())) <= set(reader.fieldnames)
+        assert set(MAPPING_KEYS + METADATA + list(PARENT_REVIEW_FIELDS.values()) + list(ID_NOTE_FIELDS.values())) <= set(reader.fieldnames)
         records=list(reader)
     groups=defaultdict(list)
     for d in records:

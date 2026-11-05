@@ -598,3 +598,65 @@ tetap 26.128 record dan 35 kolom. PILIHAN MAPPING menjadi 58.589 baris, berkuran
 lima saran tersebut. Workbook dapat dibuka; kolom lain, input client, dropdown,
 dan 13 sheet lain tetap sama. Teks rekomendasi tetap memakai wrap. Jumlah dan
 urutan 15 sheet tidak berubah; tidak ada formula atau ID final otomatis baru.
+
+## Alasan ID kosong dan ID sumber yang sama diperjelas
+
+`regional_id_explanations.py` menambahkan penjelasan untuk rekomendasi yang
+belum mempunyai ID, wilayah di atasnya belum mempunyai ID utama, atau memakai
+ID sumber yang sama tetapi masih perlu pemeriksaan hubungan wilayah.
+Pemeriksaan membaca nama dan ID hubungan yang benar-benar tercatat pada file
+Salesforce. Lokasi hasil perkiraan dari nama atau kolom lama tidak digunakan
+sebagai bukti bahwa hubungan utama sudah benar.
+
+Penjelasan ditampilkan pada kolom Pilihan_1_Catatan sampai Pilihan_3_Catatan di
+DATA BELUM JELAS dan Catatan_Rekomendasi di PILIHAN MAPPING. Tidak ada kolom
+workbook baru. Field Penjelasan_ID_Client hanya ditambahkan pada CSV kandidat
+internal, dan helper penerapan memerlukan field tersebut agar penjelasan tidak
+hilang ketika dijalankan dengan keluaran lama.
+
+Keadaan yang dijelaskan mencakup:
+
+- Nama rekomendasi ada di master, tetapi nama yang sama pada tingkat tersebut
+  belum ditemukan dalam file Salesforce. Minta penelusuran nama/ID lain;
+  pembuatan data tetap memerlukan keputusan client setelah pemeriksaan data lama.
+- Data bernama sama ditemukan, tetapi hubungan wilayahnya berbeda, kosong,
+  atau belum dapat dipastikan. Tampilkan lokasi yang diperlukan dan kondisi
+  hubungan setiap ID yang ditemukan. Maksimal tiga data ditampilkan; sisanya
+  dinyatakan sebagai +N data bernama sama lainnya.
+- Beberapa data cocok dengan lokasi, tetapi penetapan ID utama belum selesai.
+  Penjelasan meminta client memilih setelah memeriksa data tersebut.
+- ID sumber ditampilkan kembali karena data yang sama masih perlu diperiksa
+  atau diperbaiki. Kondisi saat ini dijelaskan sebelum petunjuk perbaikan,
+  termasuk kecamatan kosong, ID hubungan yang tidak ditemukan, dan penggunaan
+  data kota/kabupaten duplikat. Instruksi mempertahankan ID tidak diulang.
+
+Contoh Jangga Dolok `a1pJ40000008XEvIAM`: rekomendasi kecamatan Lumban Julu
+tetap ditampilkan dengan kolom ID kosong. Catatan menjelaskan bahwa kabupaten
+yang diperlukan adalah Sumatra Utara | Kab. Toba, sedangkan ID Lumban Julu
+`a1pJ40000008XSDIA2` yang ditemukan masih terhubung ke Kab. Tapanuli Utara.
+ID itu hanya disebut sebagai bahan pemeriksaan dan tidak otomatis menjadi ID
+tujuan. Informasi Jangga Dolok sebagai kelurahan pada master tetap ditampilkan.
+Keterangan hubungan Kab. Toba yang sudah sesuai diperjelas sebagai kondisi
+data sumber, sehingga tidak terbaca sebagai persetujuan terhadap ID kecamatan.
+
+Contoh lain: Penarik `a1nJ4000000KcG8IAK` dijelaskan memiliki kolom kecamatan
+utama yang kosong; Maju Makmur `a1nJ4000000KcG4IAK` masih menunjuk Batulicin;
+Jangga Toruan `a1nfC00000VFAI6QAP` memerlukan pemeriksaan ID kecamatan serta
+peralihan hubungan dari data Toba duplikat ke ID utama Kab. Toba.
+
+Seluruh 65 pengujian unit lulus, termasuk perbedaan kabupaten, hubungan kosong,
+ID yang tidak ditemukan, beberapa ID yang cocok, batas tiga data, konteks beda
+tingkat, ID sumber yang sama, dan pemisahan kondisi data sumber dari ID tujuan.
+Perbandingan pipeline memastikan seluruh field lama pada 28 CSV nonkandidat
+dan 59.648 baris kandidat identik. Nama/lokasi rekomendasi, urutan, seluruh ID,
+status, hasil mapping, serta temuan lintas tingkat tidak diubah. Penjelasan
+tidak mengubah jumlah rekomendasi atau mengisi ID final client secara otomatis.
+
+Validasi workbook: 21.661 sel catatan pada 17.444 sumber diperbarui di DATA
+BELUM JELAS, serta 27.303 sel Catatan_Rekomendasi di PILIHAN MAPPING. Pemeriksaan
+seluruh sel membatasi perubahan hanya pada tiga kolom catatan pilihan dan
+satu kolom catatan mapping tersebut. DATA BELUM JELAS tetap 26.128 sumber;
+PILIHAN MAPPING tetap 58.589 baris. Sebanyak 5.634 ID pilihan pertama tetap
+kosong dan 2.019 sumber tetap tidak mempunyai rekomendasi. Jumlah/urutan 15
+sheet tetap, 13 sheet lain identik, input dan format client serta dropdown
+terjaga, teks memakai wrap, dan tidak ada formula baru. Workbook dapat dibuka.

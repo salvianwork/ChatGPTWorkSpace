@@ -25,6 +25,12 @@ def check(old, new):
             assert set(b)-set(a) <= {'Status_Validasi_Wilayah','Status_Penetapan_ID_Utama'},filename
     before = read(old, 'Review_candidates.csv')
     after = read(new, 'Review_candidates.csv')
+    if before and 'Penjelasan_ID_Client' not in before[0] and 'Penjelasan_ID_Client' in after[0]:
+        for previous,current in zip(before,after,strict=True):
+            assert all(current[k]==v for k,v in previous.items()),previous['Id_Sumber']
+            assert set(current)-set(previous)=={'Penjelasan_ID_Client'}
+            if current['Jenis_Bukti']!='KANDIDAT_OBJEK_SAMA':assert not current['Penjelasan_ID_Client']
+        print('ID explanations only: all existing candidate fields, ranks and IDs unchanged.')
     provinces={normalize(r['Hierarki_Master'],0) for r in read(old,'Master_target_inventory.csv')
                if r['Objek']=='Provinsi__c'}
     def province_fuzzy(row):
@@ -54,6 +60,14 @@ def check(old, new):
         groups[row['Id_Sumber']].append(row)
         if row['Jenis_Bukti'] == 'TEMUAN_LINTAS_TINGKAT':
             assert not row['Id_Target_Kandidat']
+    for rid in ['a1pJ40000008XEvIAM','a1nfC00000VFAI6QAP']:
+        if 'Penjelasan_ID_Client' in groups[rid][0]:
+            detail=groups[rid][0]['Penjelasan_ID_Client']
+            assert 'Lumban Julu' in detail and 'Kab. Tapanuli Utara' in detail
+            assert 'a1pJ40000008XSDIA2' in detail
+    if 'Penjelasan_ID_Client' in groups['a1nJ4000000KcG8IAK'][0]:
+        assert 'Kolom kecamatan utama saat ini kosong' in groups['a1nJ4000000KcG8IAK'][0]['Penjelasan_ID_Client']
+        assert 'Batulicin' in groups['a1nJ4000000KcG4IAK'][0]['Penjelasan_ID_Client']
     for rid, target in [('a1oJ40000009JKeIAM', 'Kota Banjar'), ('a1ofC000000PZnOQAW', 'Kota Tangerang Selatan'), ('a1pJ40000008XLbIAM', 'Tuban'), ('a1ofC0000003GwHQAU', 'Kab. Bekasi'), ('a1pJ40000008X3UIAU', 'Buay Pemaca')]:
         assert groups[rid][0]['Nama_Kandidat'] == target
         assert groups[rid][0]['Jenis_Bukti'] == 'KANDIDAT_OBJEK_SAMA'
@@ -109,7 +123,7 @@ def check(old, new):
     assert legok['Perlu_Perbaikan_Wilayah']=='YES'
     # Cross-level evidence remains exactly the same apart from its display rank.
     def evidence(rows):
-        return sorted(tuple(sorted((k, v) for k, v in r.items() if k not in {'Urutan','Jenis_Rekomendasi','Status_Verifikasi_ID','Alasan_Verifikasi_ID','ID_Master_Perlu_Verifikasi','Petunjuk_Perbaikan_Wilayah','Perlu_Perbaikan_Wilayah'}))
+        return sorted(tuple(sorted((k, v) for k, v in r.items() if k not in {'Urutan','Jenis_Rekomendasi','Status_Verifikasi_ID','Alasan_Verifikasi_ID','ID_Master_Perlu_Verifikasi','Petunjuk_Perbaikan_Wilayah','Perlu_Perbaikan_Wilayah','Penjelasan_ID_Client'}))
                       for r in rows if r['Jenis_Bukti'] == 'TEMUAN_LINTAS_TINGKAT')
     assert evidence(before) == evidence(after)
     def destinations(rows):
