@@ -6,6 +6,32 @@ from regional_matching import ranked_candidates, district_context_candidates, ci
 
 
 class RegionalMatchingTests(unittest.TestCase):
+    def test_province_name_does_not_suggest_similar_cities(self):
+        paths=[('Lampung','Kab. Lampung '+suffix) for suffix in ['Barat','Timur','Utara']]
+        self.assertEqual(len(ranked_candidates(1,'Lampung',('Lampung',),paths)),3)
+        self.assertEqual(ranked_candidates(1,'Lampung',('Lampung',),paths,[('Lampung',)]),[])
+
+    def test_province_guard_normalizes_name_and_uses_all_master_provinces(self):
+        paths=[('Banten','Kota Lampung Timur')]
+        self.assertTrue(ranked_candidates(1,' LAMPUNG. ',('Banten',),paths))
+        self.assertEqual(ranked_candidates(1,' LAMPUNG. ',('Banten',),paths,
+                                           [('Banten',),('Lampung',)]),[])
+
+    def test_province_name_retains_strong_same_level_city_evidence(self):
+        paths=[('Bengkulu','Kota Bengkulu'),('Bengkulu','Kab. Bengkulu Tengah')]
+        result=ranked_candidates(1,'Bengkulu',('Bengkulu',),paths,[('Bengkulu',)])
+        self.assertEqual([(r[0],r[2]) for r in result],[(2,paths[0])])
+        exact=('Bengkulu','Bengkulu')
+        result=ranked_candidates(1,'Bengkulu',('Bengkulu',),[exact],[('Bengkulu',)])
+        self.assertEqual(result[0][0],0)
+        self.assertEqual(result[0][2],exact)
+
+    def test_nonprovince_city_fuzzy_recommendations_are_preserved(self):
+        paths=[('Bali','Kab. Bangli')]
+        expected=ranked_candidates(1,'Banglii',('Bali',),paths)
+        self.assertTrue(expected)
+        self.assertEqual(ranked_candidates(1,'Banglii',('Bali',),paths,[('Bali',)]),expected)
+
     def test_banjar(self):
         p = ('Jawa Barat', 'Kota Banjar')
         result = ranked_candidates(1, 'Banjar', ('Jawa Barat',), [p, ('Bali', 'Kota Banjar')])

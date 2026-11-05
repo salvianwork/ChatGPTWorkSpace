@@ -62,7 +62,7 @@ def match(i,name,parent):
  return None,'AMBIGUOUS_NORMALIZATION' if vals else 'NO_MATCH_IN_PARENT'
 def suggestion(i,name,parent):
  pool=children[i].get(parent,[]) if parent is not None else list(names[i].get(norm(name,i),[]))
- return ranked_candidates(i,name,parent,pool)
+ return ranked_candidates(i,name,parent,pool,master[0])
 for i,rows in enumerate(data):
  res=[];mapped={}
  for row in rows:

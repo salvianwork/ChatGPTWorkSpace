@@ -12,6 +12,7 @@ from lxml import etree as E
 import openpyxl
 sys.path.insert(0,str(Path(__file__).resolve().parents[1]/'scripts'))
 from regional_client_display import CHOICE_HEADERS,MAPPING_HEADERS,client_candidate,mapping_row,source_text
+from reclassify_valid_regions import existing_pending_ids
 
 NS={'m':'http://schemas.openxmlformats.org/spreadsheetml/2006/main'};TAG='{'+NS['m']+'}'
 
@@ -23,6 +24,13 @@ def signature(node, ignore_ref=False):
 
 def check(before,after,candidates):
     with ZipFile(before) as a,ZipFile(after) as b:
+        strings=[''.join(si.itertext()) for si in E.fromstring(a.read('xl/sharedStrings.xml'))]
+        def value(c):
+            if c is None:return None
+            if c.get('t')=='inlineStr':return ''.join(c.find('m:is',NS).itertext())
+            v=c.findtext('m:v',namespaces=NS)
+            return strings[int(v)] if c.get('t')=='s' else v
+        already_valid=existing_pending_ids(a,value)
         assert a.namelist()==b.namelist();assert b.testzip() is None
         changed={n for n in a.namelist() if a.read(n)!=b.read(n)}
         assert changed<={'xl/worksheets/sheet14.xml','xl/worksheets/sheet15.xml','xl/styles.xml','xl/workbook.xml'},changed
@@ -89,6 +97,7 @@ def check(before,after,candidates):
         bx.set('count',ax.get('count'));assert E.tostring(ast)==E.tostring(bst)
     print('PASS: source IDs/names, client values/styles, dropdown choices and 13 other sheets unchanged; dropdown positions updated correctly; no new formulas.')
     with candidates.open(encoding='utf-8-sig',newline='') as f:records=list(csv.DictReader(f))
+    records=[r for r in records if r['Id_Sumber'] not in already_valid]
     from collections import defaultdict
     groups=defaultdict(list)
     for d in records:
@@ -120,6 +129,9 @@ def check(before,after,candidates):
         options=[tuple(v or '' for v in row[12+i*5:15+i*5]) for i in range(3) if row[12+i*5] is not None]
         assert len(options)==len(set(options)),row[1]
         if row[1] in watched:samples.append({'Nama':row[2],'Rekomendasi':row[12:17]})
+        if row[1] in {'a1oJ40000009gGfIAI','a1oJ40000009VymIAE','a1ofC00000504n7QAA'}:
+            assert row[11]==0 and not any(row[12:27]),row[1]
+            assert 'Provinsi:' in row[10] and row[10]==oldrow[10]
     print('PASS: one ID/status/note per choice; names, paths, ranks and all candidate IDs agree with source CSV; pending IDs remain labelled; input values preserved.')
     print(json.dumps(samples,ensure_ascii=False,indent=2));old.close();w.close()
 

@@ -3,6 +3,9 @@ import argparse
 import csv
 from collections import defaultdict
 from pathlib import Path
+import sys
+sys.path.insert(0,str(Path(__file__).resolve().parents[1]/'scripts'))
+from regional_matching import normalize
 
 
 def read(root, filename):
@@ -22,14 +25,31 @@ def check(old, new):
             assert set(b)-set(a) <= {'Status_Validasi_Wilayah','Status_Penetapan_ID_Utama'},filename
     before = read(old, 'Review_candidates.csv')
     after = read(new, 'Review_candidates.csv')
+    provinces={normalize(r['Hierarki_Master'],0) for r in read(old,'Master_target_inventory.csv')
+               if r['Objek']=='Provinsi__c'}
+    def province_fuzzy(row):
+        return (row['Objek']=='Kota_Kabupaten__c' and normalize(row['Nama_Sumber'],0) in provinces
+                and row['Jenis_Bukti']=='KANDIDAT_OBJEK_SAMA' and row['Alasan'].startswith('Kemiripan teks'))
+    removed=[row for row in before if province_fuzzy(row)]
+    expected=[row for row in before if not province_fuzzy(row)]
+    if removed:
+        without_rank=lambda row:{k:v for k,v in row.items() if k!='Urutan'}
+        assert list(map(without_rank,after))==list(map(without_rank,expected)), 'Unexpected candidate change'
+        lampung=[r for r in after if r['Id_Sumber']=='a1oJ40000009gGfIAI']
+        assert lampung and all(r['Jenis_Bukti']=='TEMUAN_LINTAS_TINGKAT' for r in lampung)
+        assert {r['Sumber_Data'] for r in lampung}=={'Master','Ekspor Salesforce'}
+        assert all(r['Tingkat_Ditemukan']=='Provinsi' and not r['Id_Target_Kandidat'] for r in lampung)
     if before and 'Petunjuk_Perbaikan_Wilayah' not in before[0] and 'Petunjuk_Perbaikan_Wilayah' in after[0]:
         for previous,current in zip(before,after,strict=True):
             assert all(current[k]==v for k,v in previous.items()),previous['Id_Sumber']
         print('Parent instructions only: all existing candidate CSV fields unchanged.')
     groups = defaultdict(list)
     oldgroups = defaultdict(list)
+    expectedgroups = defaultdict(list)
     for row in before:
         oldgroups[row['Id_Sumber']].append(row)
+    for row in expected:
+        expectedgroups[row['Id_Sumber']].append(row)
     for row in after:
         groups[row['Id_Sumber']].append(row)
         if row['Jenis_Bukti'] == 'TEMUAN_LINTAS_TINGKAT':
@@ -95,13 +115,14 @@ def check(old, new):
     def destinations(rows):
         return [(r['Nama_Kandidat'], r['Hierarki_Kandidat'], r['Id_Target_Kandidat'])
                 for r in rows if r['Jenis_Bukti'] == 'KANDIDAT_OBJEK_SAMA']
-    # Deduplication must not remove a distinct location or change its verified ID.
+    # Only explicitly suppressed province-name fuzzy suggestions may disappear.
+    # Distinct remaining locations and all verified IDs must remain unchanged.
     for rid in groups.keys() | oldgroups.keys():
-        assert destinations(groups[rid])==list(dict.fromkeys(destinations(oldgroups[rid]))),rid
+        assert destinations(groups[rid])==list(dict.fromkeys(destinations(expectedgroups[rid]))),rid
         def visible_ids(rows):
             return [(r['Nama_Kandidat'],r['Hierarki_Kandidat'],r['Id_Target_Kandidat'] or r.get('ID_Master_Perlu_Verifikasi',''))
                     for r in rows if r['Jenis_Bukti']=='KANDIDAT_OBJEK_SAMA']
-        assert visible_ids(groups[rid])==list(dict.fromkeys(visible_ids(oldgroups[rid]))),rid
+        assert visible_ids(groups[rid])==list(dict.fromkeys(visible_ids(expectedgroups[rid]))),rid
         target_rows=[r for r in groups[rid] if r['Jenis_Bukti']=='KANDIDAT_OBJEK_SAMA']
         paths=[r['Hierarki_Kandidat'] for r in target_rows]
         assert len(paths)==len(set(paths)),rid
@@ -111,6 +132,7 @@ def check(old, new):
     print('All prior fields in non-candidate CSVs unchanged:',len(filenames))
     print('Candidate rows before/after:', len(before), len(after))
     print('Sources with changed ordered same-level recommendations:', changed)
+    print('Province-name fuzzy candidates removed:',len(removed))
     print('All source records, IDs, mapping decisions, updates, duplicates and cross-level evidence unchanged.')
 
 

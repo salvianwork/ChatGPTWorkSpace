@@ -55,14 +55,20 @@ def name_with_validated_parent(name, level, parent):
     return parts[0]
 
 
-def ranked_candidates(level, name, parent, paths):
+def ranked_candidates(level, name, parent, paths, province_paths=()):
     """Return (priority, text similarity, path, explanation), strongest first.
 
     Unknown parents permit exact normalized names only. Known parents restrict
     every candidate to the same full parent path. Alias/core matches remain review
     proposals, even when only one destination exists.
+
+    A city record named exactly like a master province must not acquire unrelated
+    city suggestions from text similarity. Retain exact/alias/core evidence;
+    province matches remain informational cross-level findings, without IDs.
     """
     eligible = sorted(p for p in paths if parent is None or p[:-1] == parent)
+    province_name = level == 1 and any(
+        normalize(name, 0) == normalize(p[0], 0) for p in province_paths)
     candidates = []
     qualified_name = name_with_validated_parent(name, level, parent)
     for path in eligible:
@@ -96,6 +102,8 @@ def ranked_candidates(level, name, parent, paths):
                 matches = [p for p in eligible if city_parts(p[-1])[1] == core]
                 if len(matches) > 1:
                     reason += ' Ambigu: lebih dari satu wilayah memiliki nama inti yang sama.'
+        if province_name and priority == 3:
+            continue
         if priority < 3 or score >= 50:
             candidates.append((priority, score, path, reason))
     candidates.sort(key=lambda item: (item[0], -item[1], item[2]))

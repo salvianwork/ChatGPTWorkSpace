@@ -547,3 +547,54 @@ python cleansing/tests/check_valid_region_reclassification.py \
   'cleansing/client_review/Mandatory for Client/02_REVIEW_CLIENT_DATA_REGIONAL.xlsx' \
   /tmp/regional-valid-new
 ```
+
+## Nama provinsi tidak dijadikan saran kabupaten berdasarkan kemiripan teks
+
+Record Kota/Kabupaten Lampung `a1oJ40000009gGfIAI` sebelumnya mendapat saran
+Kab. Lampung Barat, Kab. Lampung Timur, dan Kab. Lampung Utara. Ketiganya hanya
+mirip secara teks. Nama Lampung sendiri sudah ditemukan sebagai provinsi pada
+master dan ekspor Salesforce; tidak ada bukti bahwa record tersebut dimaksudkan
+sebagai salah satu kabupaten itu.
+
+Generator sekarang memberikan daftar provinsi master ke `ranked_candidates`.
+Untuk sumber Kota/Kabupaten dengan nama persis sama setelah normalisasi dengan
+nama provinsi master, kandidat yang hanya berdasarkan kemiripan teks tidak
+ditampilkan. Pemeriksaan memakai seluruh nama provinsi master, sehingga tetap
+berlaku bila hubungan provinsi pada sumber berbeda. Bukti yang lebih kuat tetap
+dipertahankan: nama sama, alias terdaftar, nama inti administratif yang sama,
+keterangan induk yang sudah dicocokkan, serta konteks lokasi persis dari master.
+Contohnya Bengkulu tetap dapat mengarah ke Kota Bengkulu; tidak semua nama yang
+sama dengan provinsi harus dikosongkan jika bukti kota/kabupatennya tersedia.
+
+Pada data saat ini, lima saran dihapus untuk tiga sumber:
+
+- Lampung `a1oJ40000009gGfIAI`: tiga kabupaten Lampung di atas.
+- Bali `a1oJ40000009VymIAE`: Kab. Bangli.
+- Papua `a1ofC00000504n7QAA`: Kab. Jayapura.
+
+Ketiganya tetap berada di DATA BELUM JELAS. Jumlah_Rekomendasi menjadi nol;
+Pilihan_1 sampai Pilihan_3 kosong. Temuan Provinsi dari Master dan Salesforce
+tetap ditampilkan agar client mengonfirmasi tingkat wilayah. Tidak ada ID
+provinsi yang otomatis dimasukkan sebagai ID tujuan kota/kabupaten. ID sumber,
+nama sumber, hubungan wilayah, dan kolom keputusan client tidak diubah.
+
+Validasi pipeline mencocokkan seluruh field lama pada 28 CSV nonkandidat dan
+memastikan hanya lima baris saran tersebut yang dihapus dari CSV kandidat;
+baris lain identik kecuali nomor urut bukti pada sumber yang terpengaruh.
+Jumlah kandidat internal sesudah penerjemahan: 59.653 menjadi 59.648.
+Keputusan mapping, data valid, duplikat, usulan perbaikan, serta bukti lintas
+tingkat tidak berubah. Ada 55 pengujian unit, termasuk penahanan saran Lampung,
+normalisasi nama provinsi, perbedaan provinsi sumber, mempertahankan kecocokan
+kota yang kuat, dan mempertahankan saran biasa untuk nama selain provinsi.
+
+Pemeriksaan workbook menggunakan `check_client_review_workbook.py`; kandidat
+untuk 1.059 record yang sudah dipindahkan ke sheet VALID tetap dikecualikan
+dari PILIHAN MAPPING agar tidak muncul kembali. Jumlah record sumber dan urutan
+sheet/baris sumber tetap; hanya rekomendasi pada tiga sumber dan rincian terkait
+di PILIHAN MAPPING yang diperbarui.
+
+Hasil penerapan: 28 sel rekomendasi pada tiga sumber berubah; DATA BELUM JELAS
+tetap 26.128 record dan 35 kolom. PILIHAN MAPPING menjadi 58.589 baris, berkurang
+lima saran tersebut. Workbook dapat dibuka; kolom lain, input client, dropdown,
+dan 13 sheet lain tetap sama. Teks rekomendasi tetap memakai wrap. Jumlah dan
+urutan 15 sheet tidak berubah; tidak ada formula atau ID final otomatis baru.
