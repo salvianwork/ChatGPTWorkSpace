@@ -756,3 +756,71 @@ Helper memerlukan lokasi backup baru dan memeriksa kesesuaian pipeline dengan
 rekomendasi workbook. Jika sheet Parent sudah ada, baris lama dipertahankan
 dan baris tambahan diletakkan di akhir. Jika tidak ada sumber tambahan yang
 memenuhi kriteria, workbook tidak ditulis ulang.
+
+## Daikin: satu baris per hubungan dan relasi master lengkap
+
+Tahap tampilan `daikin_relation_rows.py` dijalankan sesudah pemisahan seluruh
+ID tetap di atas. Sheet PERBAIKAN PARENT - ID TETAP berubah dari 9.000 baris
+data/24 kolom menjadi 12.570 baris hubungan/19 kolom. Jumlah ID unik tetap
+9.000: 200 kecamatan dan 8.800 kelurahan. Terdapat 3.570 ID dengan dua hubungan
+yang perlu diperiksa. Baris terdiri atas 200 Parent Kabupaten/Kota, 8.543
+Parent Kecamatan, dan 3.827 Kabupaten/Kota Langsung. ID data boleh berulang
+di dalam sheet ini, tetapi pasangan ID data dan jenis hubungan harus unik.
+Tidak ada sumber yang pindah ke kelompok review lain. RINGKASAN tetap memakai
+9.000 ID unik dan judul kolomnya diperjelas; tidak menjumlahkan 12.570 baris
+hubungan sebagai jumlah data.
+
+Kolom Id/Nama Relasi Sekarang dan Id/Nama Relasi Usulan dipakai bersama untuk
+setiap jenis hubungan. Hubungan yang sudah sesuai tidak mendapat baris
+tambahan dan tetap dijelaskan di catatan. ID relasi final mengikuti jenis
+hubungannya; keputusan, catatan, PIC dan tanggal review tetap dipertahankan.
+Nama kota saat ini diambil dari ekspor berdasarkan ID sumber, bukan ditebak
+dari lokasi hasil pencocokan. Kolom Lokasi Relasi Dari Pencocokan diberi label
+terpisah karena konteks tersebut belum membuktikan hubungan saat ini benar.
+Catatan sumber dan temuan lintas tingkat dipertahankan utuh pada setiap baris.
+
+Kolom J, Relasi Master yang Seharusnya, berisi provinsi hingga nama data:
+provinsi | kabupaten/kota | kecamatan [| kelurahan]. Setiap lokasi diperiksa
+terhadap Master_target_inventory.csv; tidak ada lokasi yang dibuat atau
+ditebak. Untuk 3.058 ID dengan beberapa lokasi, semua pilihan ditampilkan
+dengan bullet dan penanda Lokasi masih perlu dikonfirmasi. ID relasi usulan
+tetap kosong untuk lokasi yang belum dipastikan. Contoh Hutagurgur (Huta
+Gurgur) a1nfC00000VF9uNQAT sekarang mempunyai dua baris: Parent Kecamatan
+Dolok Sanggul dengan ID usulan kosong dan Kabupaten/Kota Langsung dengan ID
+usulan a1oJ40000009JMgIAM. Relasi master pada keduanya adalah Sumatra Utara |
+Kab. Humbang Hasundutan | Dolok Sanggul | Hutagurgur (Huta Gurgur).
+
+Dropdown keputusan berpindah ke O2:O12571, ID Relasi Final Tim Daikin berada
+di kolom P. Filter mencakup A1:S12571; teks tetap wrap dan header dibekukan.
+PETUNJUK dan KAMUS ISTILAH menjelaskan format baris hubungan. Jumlah dan
+urutan 15 sheet tidak berubah; sebelas sheet lain, seluruh gaya serta shared
+strings identik secara byte. Workbook asli 02_REVIEW_CLIENT_DATA_REGIONAL.xlsx
+dan workbook lain tidak diperbarui. Seluruh 91.306 ID sumber tetap ada dalam
+kelompoknya; jumlah dihitung setelah ID berulang per hubungan disatukan.
+Tidak ada formula atau ID final otomatis baru.
+
+88 pengujian unit lulus, termasuk 8 pengujian relasi master, dua hubungan,
+hubungan yang sudah sesuai, nama kota dari ekspor, ID yang belum tersedia,
+dan pemeliharaan jawaban review. Pemeriksaan workbook untuk format terbaru:
+
+```sh
+python cleansing/tests/check_daikin_relation_rows.py \
+  /tmp/daikin-before-relation-rows.xlsx \
+  'cleansing/client_review/Mandatory for Client/Daikin_Cleansing_Data_Regional.xlsx' \
+  /tmp/regional-id-explanation-final
+```
+
+Untuk membangun format ini dari hasil tahap ID tetap 24 kolom:
+
+```sh
+python cleansing/scripts/daikin_relation_rows.py \
+  --workbook 'cleansing/client_review/Mandatory for Client/Daikin_Cleansing_Data_Regional.xlsx' \
+  --pipeline /tmp/regional-id-explanation-final \
+  --backup /tmp/daikin-before-relation-rows.xlsx \
+  --report /tmp/daikin-relation-rows-report.json
+```
+
+Helper memerlukan lokasi backup baru dan menolak penerapan ulang pada sheet
+yang sudah memakai format 19 kolom. Pemeriksa pemisahan ID tetap sebelumnya
+berlaku untuk tahap antara 24 kolom; pemeriksa relasi ini berlaku untuk hasil
+tampilan terakhir.
