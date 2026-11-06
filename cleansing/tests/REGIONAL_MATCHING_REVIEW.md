@@ -663,45 +663,59 @@ terjaga, teks memakai wrap, dan tidak ada formula baru. Workbook dapat dibuka.
 
 ## Daikin: pisahkan perbaikan Parent dengan ID data tetap
 
-`daikin_parent_review.py` memindahkan 4.841 sumber dari DATA BELUM JELAS ke
-sheet baru PERBAIKAN PARENT - ID TETAP pada Daikin_Cleansing_Data_Regional.xlsx.
-Rinciannya 136 kecamatan dan 4.705 kelurahan. DATA BELUM JELAS menjadi 21.287
-sumber: 67 kota/kabupaten, 845 kecamatan, dan 20.375 kelurahan. Sheet baru
-ditempatkan tepat sebelum DATA BELUM JELAS; jumlah sheet menjadi 15.
+`daikin_parent_review.py` memindahkan semua kasus dengan ID rekomendasi pertama
+sama dengan ID sumber dari DATA BELUM JELAS ke PERBAIKAN PARENT - ID TETAP pada
+Daikin_Cleansing_Data_Regional.xlsx. Setelah pemisahan awal 4.841 sumber,
+perluasan memindahkan 4.159 sumber tambahan: 64 kecamatan dan 4.095 kelurahan.
+Sheet Parent kini memuat 9.000 sumber (200 kecamatan dan 8.800 kelurahan).
+DATA BELUM JELAS menjadi 17.128 sumber: 67 kota/kabupaten, 781 kecamatan,
+dan 16.280 kelurahan. Tidak ada rekomendasi ke ID sumber sendiri yang tersisa
+pada DATA BELUM JELAS. Jumlah dan urutan 15 sheet tetap pada perluasan ini.
 Workbook asli 02_REVIEW_CLIENT_DATA_REGIONAL.xlsx tidak diperbarui.
 
-Pemindahan hanya berlaku bila ID rekomendasi pertama sama dengan ID sumber,
-nama persis sama, hanya ada satu lokasi pada seluruh kandidat sejenis dalam
-Review_candidates.csv, serta semua ID Parent usulan tersedia pada inventaris
-target master. Untuk kelurahan, ID kecamatan dan kabupaten/kota langsung
-keduanya harus tersedia. Setidaknya satu hubungan harus memang kosong atau
-berbeda. ID Parent usulan juga diperiksa kembali terhadap lokasi data sumber
-yang dituju. Baris yang sudah memiliki isian keputusan Tim Daikin tidak
-dipindahkan agar jawaban yang ada tetap terjaga.
+Pemindahan tidak lagi mensyaratkan semua ID Parent sudah tersedia, satu lokasi
+rekomendasi saja, atau nama sumber sama persis. ID rekomendasi dan lokasi
+pertama diperiksa terhadap Review_candidates.csv. Seluruh kandidat sejenis
+diperiksa agar pilihan lain tidak hilang karena Daikin hanya menampilkan
+rekomendasi pertama. ID Parent yang belum diketahui dibiarkan kosong. Jika
+ada beberapa lokasi, ID dan nama Parent usulan dikosongkan seluruhnya; lokasi
+pertama tetap ditampilkan sebagai bahan review dan seluruh pilihan tersedia
+di PILIHAN MAPPING. Jika nama berbeda, nama sumber dipertahankan dan nama
+usulan dijelaskan di Catatan Perbaikan. ID Parent yang diisi berasal dari
+inventaris target dan diperiksa kembali terhadap lokasi data sumber tujuan.
+Baris dengan isian Tim Daikin tetap dilindungi; seluruh isian pada 4.159
+baris tambahan saat ini masih kosong.
 
-Sheet baru menampilkan ID data sekali, Parent saat ini, Parent usulan, lokasi
-sesuai master, dan tindakan seperti Lengkapi Parent atau Ubah Parent. Kolom
+Sheet Parent menampilkan ID data sekali, Parent saat ini, Parent usulan,
+Lokasi Rekomendasi Untuk Review, dan tindakan perbaikan/konfirmasi. Kolom
 Lokasi Parent Dari Pencocokan serta Lokasi Kota Dari Pencocokan mempertahankan
 konteks hasil pencocokan dari workbook sebelumnya; kolom tersebut bukan bukti
 bahwa hubungan yang tercatat saat ini sudah benar. Nama dan ID Parent saat ini
 tetap ditampilkan terpisah. Catatan kondisi sumber dan bukti beda tingkat
-dipertahankan. Semua data berstatus Menunggu konfirmasi Tim Daikin; keputusan
-dan ID final dibiarkan kosong. Dropdown keputusan berisi SETUJU_UBAH,
+dipertahankan. Status Review membedakan Parent belum pasti, lokasi dan Parent
+belum pasti, nama perlu dikonfirmasi, serta usulan lengkap yang menunggu
+konfirmasi Tim Daikin. Seluruh keputusan dan ID final tetap kosong. Dropdown
+keputusan berisi SETUJU_UBAH,
 TOLAK_PERUBAHAN, dan PERLU_DISKUSI. Tidak ada perubahan Salesforce otomatis.
 
 Contoh: Penarik a1nJ4000000KcG8IAK diusulkan untuk melengkapi Parent kecamatan
 dengan a1pJ40000008Xi7IAE. Maju Makmur a1nJ4000000KcG4IAK diusulkan mengganti
 Parent Batulicin dengan Kecamatan Penarik yang sama. ID kedua kelurahan tetap
 dipertahankan. Legok Kidul a1nJ4000000Kc2yIAC juga dipindahkan untuk melengkapi
-Parent Kecamatan Paseh. Jangga Toruan a1nfC00000VFAI6QAP tetap di DATA BELUM
-JELAS karena ID Parent Lumban Julu belum dapat dipastikan.
+Parent Kecamatan Paseh. Jangga Toruan a1nfC00000VFAI6QAP kini juga dipindahkan,
+dengan ID Parent Lumban Julu tetap kosong karena belum dapat dipastikan.
+Hutagurgur (Huta Gurgur) a1nfC00000VF9uNQAT berstatus Parent masih perlu
+dikonfirmasi; ID Parent Dolok Sanggul kosong, tetapi usulan ID kabupaten
+a1oJ40000009JMgIAM tetap ditampilkan. Citamiang a1pJ40000008X7QIAU mempunyai
+beberapa lokasi sehingga seluruh ID Parent usulan kosong. Tambun utara
+a1pJ40000008ZWAIA2 mempertahankan nama sumber dan menjelaskan nama usulan
+Tambun Utara, dengan status Nama masih perlu dikonfirmasi.
 
-Dari 9.000 baris dengan ID rekomendasi sama dengan ID sumber, 4.159 tetap
-di DATA BELUM JELAS. Pengelompokan berurutan yang tidak tumpang tindih:
-3.058 masih mempunyai lebih dari satu kandidat lokasi, 106 juga memerlukan
-perubahan nama, dan 995 belum mempunyai semua ID Parent usulan. Baris ini
-tidak dianggap siap diperbaiki hanya karena ID rekomendasi sama dengan ID
-sumber. Sebanyak 5.634 ID rekomendasi pertama tetap kosong; di antaranya
+4.159 baris tambahan dikelompokkan secara berurutan tanpa tumpang tindih:
+3.058 masih mempunyai lebih dari satu kandidat lokasi, 995 belum mempunyai
+semua ID Parent usulan, dan 106 juga memerlukan perubahan nama. Baris ini
+belum dinyatakan valid atau disetujui otomatis. Sebanyak 5.634 ID rekomendasi
+pertama pada DATA BELUM JELAS tetap kosong; di antaranya
 2.019 sumber tidak mempunyai rekomendasi lokasi sama sekali.
 
 RINGKASAN, PETUNJUK, dan KAMUS ISTILAH diperbarui. RINGKASAN menampilkan
@@ -711,28 +725,34 @@ tetap 58.589 baris sebagai bukti baca untuk kedua sheet; bukan antrean input
 review tambahan. Sepuluh sheet lain identik secara byte. Seluruh sel, gaya,
 urutan, serta isian Tim Daikin pada baris DATA BELUM JELAS yang tidak
 dipindahkan identik dengan sebelumnya. Dropdown dan rentang filter mengikuti
-jumlah baris baru. Tidak ada formula baru; teks pada sheet baru memakai wrap.
+jumlah baris baru. Seluruh 4.841 baris Parent sebelumnya, termasuk urutan,
+nilai, gaya dan isian reviewnya, identik; hanya judul kolom lokasi pada header
+diubah agar jelas merupakan rekomendasi yang masih perlu diperiksa.
+Tidak ada formula baru; seluruh teks pada sheet Parent memakai wrap.
 
-76 pengujian unit lulus, termasuk 11 pengujian batas pemindahan dan perlindungan
-isian review. Pemeriksaan workbook dilakukan dengan:
+80 pengujian unit lulus, termasuk 15 pengujian pemisahan ID tetap, Parent
+kosong, beberapa lokasi, perubahan nama, dan perlindungan isian review.
+Pemeriksaan workbook dilakukan dengan:
 
 ```sh
 python cleansing/tests/check_daikin_parent_review.py \
-  /tmp/daikin-before-parent-split.xlsx \
+  /tmp/daikin-before-all-same-id.xlsx \
   'cleansing/client_review/Mandatory for Client/Daikin_Cleansing_Data_Regional.xlsx' \
   /tmp/regional-id-explanation-final
 ```
 
-Untuk workbook Daikin dengan susunan awal 14 sheet yang sama, helper dapat
-digunakan setelah pipeline regional dijalankan dan hasilnya diterjemahkan:
+Helper mendukung susunan awal 14 sheet atau 15 sheet yang sudah memiliki
+sheet Parent. Jalankan setelah pipeline regional dan penerjemahan selesai:
 
 ```sh
 python cleansing/scripts/daikin_parent_review.py \
   --workbook 'cleansing/client_review/Mandatory for Client/Daikin_Cleansing_Data_Regional.xlsx' \
   --pipeline /tmp/regional-id-explanation-final \
-  --backup /tmp/daikin-before-parent-split.xlsx \
-  --report /tmp/daikin-parent-split-report.json
+  --backup /tmp/daikin-before-all-same-id.xlsx \
+  --report /tmp/daikin-all-same-id-report.json
 ```
 
-Helper memerlukan lokasi backup baru, menolak workbook yang sudah memiliki
-sheet tujuan, dan memeriksa kesesuaian pipeline dengan rekomendasi workbook.
+Helper memerlukan lokasi backup baru dan memeriksa kesesuaian pipeline dengan
+rekomendasi workbook. Jika sheet Parent sudah ada, baris lama dipertahankan
+dan baris tambahan diletakkan di akhir. Jika tidak ada sumber tambahan yang
+memenuhi kriteria, workbook tidak ditulis ulang.

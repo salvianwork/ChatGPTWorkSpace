@@ -33,27 +33,46 @@ def check(before,after,pipeline):
         # Independently derive the complete eligible set from the original rows.
         if v[0] not in {'Kecamatan','Kelurahan'} or not v[1] or v[1]!=v[14]:return None
         choices=candidates[v[1]]
-        if len(choices)!=1 or any(v[17:]):return None
-        c=choices[0];path=tuple(c['Hierarki_Kandidat'].split(' | '))
+        if any(v[17:]):return None
+        matching=[c for c in choices if (c['Id_Target_Kandidat'] or c['ID_Master_Perlu_Verifikasi'])==v[1]
+                  and c['Hierarki_Kandidat']==v[13]]
+        assert matching,'Workbook and pipeline differ'
+        c=matching[0];path=tuple(c['Hierarki_Kandidat'].split(' | '))
         if len(path)!={'Kecamatan':3,'Kelurahan':4}[v[0]] or c['Objek']!=v[0]+'__c':return None
         assert (c['Id_Target_Kandidat'] or c['ID_Master_Perlu_Verifikasi'])==v[1]
         assert c['Hierarki_Kandidat']==v[13]
-        if not v[2]==c['Nama_Kandidat']==path[-1]:return None
-        parent=targets.get(path[:-1]);city=targets.get(path[:2]) if len(path)==4 else None
-        if not parent or (len(path)==4 and not city):return None
+        assert v[12]==c['Nama_Kandidat']==path[-1]
+        multiple=len({c['Hierarki_Kandidat'] for c in choices})>1
+        renamed=v[2]!=v[12]
+        parent=targets.get(path[:-1]) if not multiple else None
+        city=targets.get(path[:2]) if len(path)==4 and not multiple else None
+        parent=parent or None;city=city or None
         actions=[]
-        if (v[3] or '')!=parent:actions.append('Ubah Parent' if v[3] else 'Lengkapi Parent')
-        if len(path)==4 and v[6]!=city:
-            actions.append('Ubah kabupaten/kota langsung' if v[6] else 'Lengkapi kabupaten/kota langsung')
-        return (path,parent,city,actions) if actions else None
+        if multiple:actions.append('Konfirmasi lokasi dan Parent')
+        else:
+            if parent is None:actions.append('Konfirmasi ID Parent')
+            elif v[3]!=parent:actions.append('Ubah Parent' if v[3] else 'Lengkapi Parent')
+            if len(path)==4:
+                if city is None:actions.append('Konfirmasi ID kabupaten/kota langsung')
+                elif v[6]!=city:actions.append('Ubah kabupaten/kota langsung' if v[6] else 'Lengkapi kabupaten/kota langsung')
+        if renamed:actions.append('Konfirmasi nama data')
+        if not actions:actions=['Periksa hubungan Parent']
+        if multiple:status='Lokasi dan Parent masih perlu dikonfirmasi'
+        elif parent is None or (len(path)==4 and city is None):
+            status='Nama dan Parent masih perlu dikonfirmasi' if renamed else 'Parent masih perlu dikonfirmasi'
+        elif renamed:status='Nama masih perlu dikonfirmasi'
+        elif actions==['Periksa hubungan Parent']:status='Parent masih perlu dikonfirmasi'
+        else:status=STATUS
+        return path,parent,city,actions,status,multiple,renamed
 
     with ZipFile(before) as az,ZipFile(after) as bz:
         assert bz.testzip() is None
         added=set(bz.namelist())-set(az.namelist())
-        assert added=={'xl/worksheets/sheet16.xml'}
+        existing='xl/worksheets/sheet16.xml' in az.namelist()
+        assert added==(set() if existing else {'xl/worksheets/sheet16.xml'})
         assert set(az.namelist())<=set(bz.namelist())
         changed={n for n in az.namelist() if az.read(n)!=bz.read(n)}
-        allowed={f'xl/worksheets/sheet{i}.xml' for i in [1,2,3,14]}|{
+        allowed={f'xl/worksheets/sheet{i}.xml' for i in [1,2,3,14,16]}|{
             'xl/workbook.xml','xl/_rels/workbook.xml.rels','[Content_Types].xml',
             'docProps/app.xml','xl/styles.xml','xl/sharedStrings.xml'}
         assert changed<=allowed,changed-allowed
@@ -61,6 +80,7 @@ def check(before,after,pipeline):
             entry=f'xl/worksheets/sheet{i}.xml';assert az.read(entry)==bz.read(entry)
         a,b=Archive(az),Archive(bz)
         moved={};plans={};old_ids=Counter();new_ids=Counter();counts=Counter()
+        status_counts=Counter()
 
         def data_rows(archive,index):
             for values,sig in archive.rows(index):yield values+(None,)*(24-len(values)),sig
@@ -79,28 +99,46 @@ def check(before,after,pipeline):
             assert previous is not None and previous==current,'Remaining data, style or order changed'
             if current[0][0]!='Objek':
                 remaining_count+=1;new_ids[current[0][1]]+=1
+                assert current[0][1]!=current[0][14],'Self-recommendation remains in uncertain-ID queue'
         assert moved,'No expected proposals'
-        new_rows=b.rows(16);assert next(new_rows)[0]==tuple(HEADERS)
+        new_rows=b.rows(16);new_header=next(new_rows);assert new_header[0]==tuple(HEADERS)
+        existing_count=0
+        if existing:
+            previous_rows=a.rows(16);old_header=next(previous_rows)
+            assert old_header[0][:13]+old_header[0][14:]==new_header[0][:13]+new_header[0][14:]
+            for old in previous_rows:
+                actual=next(new_rows)
+                assert old==actual,'Existing Parent proposal, review input, style or order changed'
+                old_ids[old[0][1]]+=1;new_ids[old[0][1]]+=1;existing_count+=1
         actual_ids=[]
         for v,_ in new_rows:
             rid=v[1];assert rid in moved;actual_ids.append(rid);new_ids[rid]+=1
-            old=moved[rid];path,parent,city,actions=plans[rid]
+            old=moved[rid];path,parent,city,actions,status,multiple,renamed=plans[rid]
             assert v[:3]==old[:3]
             assert v[3]==('Kecamatan' if len(path)==4 else 'Kabupaten/kota')
             assert v[4:7]==old[3:6]
-            assert v[7:9]==(parent,path[-2])
+            assert v[7:9]==(parent,None if multiple else path[-2])
             assert v[9:11]==old[6:8]
-            assert v[11:14]==(city,path[1] if city else None,' | '.join(path))
-            assert v[14]=='; '.join(actions) and v[15]==STATUS
+            assert v[11:14]==(city,path[1] if len(path)==4 and not multiple else None,' | '.join(path))
+            assert v[14]=='; '.join(actions) and v[15]==status
+            status_counts[status]+=1
             oldnote=old[16] or ''
             prefix='ID ini sama dengan ID sumber. Hubungan wilayah masih perlu diperiksa.'
             if oldnote.startswith(prefix):oldnote=oldnote[len(prefix):].lstrip()
-            assert v[16]=='ID data dipertahankan. Usulan perubahan menunggu keputusan Tim Daikin.'+('\n\n'+oldnote if oldnote else '')
+            assert v[16].startswith('ID data diusulkan tetap. Perubahan menunggu keputusan Tim Daikin.')
+            if oldnote:assert v[16].endswith('Catatan rekomendasi pertama (perlu dikonfirmasi):\n'+oldnote)
+            if multiple:
+                assert all(v[i] is None for i in [7,8,11,12])
+                assert 'ID serta nama Parent usulan dikosongkan sampai lokasi dipastikan.' in v[16]
+            elif parent is None or (len(path)==4 and city is None):
+                assert 'ID Parent yang belum dapat dipastikan dibiarkan kosong.' in v[16]
+            if renamed:
+                assert f'Nama saat ini: {old[2]}. Nama pada rekomendasi pertama: {old[12]}.' in v[16]
             assert v[17]==old[10] and all(x is None for x in v[18:])
             assert not any(old[17:]),'Existing Tim Daikin inputs lost'
             source=sources[rid]
             assert (source['Nama_Sumber'],source['Id_Induk_Sumber'],source['Id_Kota_Langsung_Sumber'])==(old[2],old[3] or '',old[6] or '')
-            for pid,ppath in [(parent,path[:-1])]+([(city,path[:2])] if city else []):
+            for pid,ppath in ([(parent,path[:-1])] if parent else [])+([(city,path[:2])] if city else []):
                 record=sources[pid]
                 actual=tuple(record[k] for k in ['Provinsi_Target','KotaKabupaten_Target','Kecamatan_Target','Kelurahan_Target'] if record[k])
                 assert actual==ppath,'Proposed Parent ID belongs to another location'
@@ -110,9 +148,11 @@ def check(before,after,pipeline):
                 if v[0]!='Objek':old_ids[v[1]]+=1;new_ids[v[1]]+=1
         assert old_ids==new_ids and all(n==1 for n in new_ids.values())
         summary_before=[v for v,_ in a.rows(2)];summary_after=[v for v,_ in b.rows(2)]
-        assert summary_after[0]==summary_before[0]+('Perbaikan Parent ID Tetap',)
+        assert summary_after[0]==summary_before[0]+(() if existing else ('Perbaikan Parent ID Tetap',))
         for old,new in zip(summary_before[1:],summary_after[1:],strict=True):
-            values=list(old);values[6]-=counts[old[0]];values.append(counts[old[0]])
+            values=list(old);values[6]-=counts[old[0]]
+            if existing:values[8]+=counts[old[0]]
+            else:values.append(counts[old[0]])
             assert new==tuple(values)
         assert sum(v[2]+v[3]+v[5]+v[6]+v[8] for v in summary_after[1:])==len(new_ids)
         am,bm=a.metadata(14),b.metadata(14)
@@ -122,7 +162,7 @@ def check(before,after,pipeline):
         ad,bd=am.find('m:dataValidations',NS),bm.find('m:dataValidations',NS)
         assert len(ad)==len(bd)==1 and bd[0].get('sqref')==f'R2:R{remaining_count+1}'
         bd[0].set('sqref',ad[0].get('sqref'));assert E.tostring(am)==E.tostring(bm)
-        nm=b.metadata(16);last=len(moved)+1
+        nm=b.metadata(16);last=existing_count+len(moved)+1
         assert nm.find('m:dimension',NS).get('ref')==f'A1:X{last}'
         assert nm.find('m:autoFilter',NS).get('ref')==f'A1:X{last}'
         dv=nm.find('m:dataValidations/m:dataValidation',NS)
@@ -131,7 +171,8 @@ def check(before,after,pipeline):
         assert nm.find('m:sheetViews/m:sheetView/m:pane',NS).get('topLeftCell')=='D2'
         ast,bst=E.fromstring(az.read('xl/styles.xml')),E.fromstring(bz.read('xl/styles.xml'))
         ax,bx=ast.find('m:cellXfs',NS),bst.find('m:cellXfs',NS)
-        assert len(bx)==len(ax)+2
+        assert len(bx)==len(ax)+(0 if existing else 2)
+        if existing:assert az.read('xl/styles.xml')==bz.read('xl/styles.xml')
         for x,y in zip(ax,bx):assert E.tostring(x)==E.tostring(y)
         for xf in list(bx)[len(ax):]:
             assert xf.find('m:alignment',NS).get('wrapText')=='1'
@@ -145,7 +186,7 @@ def check(before,after,pipeline):
         oldnames=[s.get('name') for s in aw.find('m:sheets',NS)]
         newnames=[s.get('name') for s in bw.find('m:sheets',NS)]
         inserted=oldnames.index('DATA BELUM JELAS')
-        assert newnames==oldnames[:inserted]+[TITLE]+oldnames[inserted:]
+        assert newnames==(oldnames if existing else oldnames[:inserted]+[TITLE]+oldnames[inserted:])
         for name in bw.findall('m:definedNames/m:definedName',NS):
             index=int(name.get('localSheetId'))
             assert name.text.startswith(("'"+newnames[index]+"'!",newnames[index]+'!')),(index,name.text)
@@ -153,15 +194,19 @@ def check(before,after,pipeline):
         for entry in bz.namelist():
             if re.fullmatch(r'xl/worksheets/sheet\d+\.xml',entry):
                 assert re.search(rb'<f(?:\s|>)',bz.read(entry)) is None
-        for rid in ['a1nJ4000000KcG8IAK','a1nJ4000000KcG4IAK','a1nJ4000000Kc2yIAC']:
+        for rid in ['a1nfC00000VF9uNQAT','a1nfC00000VFAI6QAP','a1pJ40000008X7QIAU','a1pJ40000008ZWAIA2']:
             assert rid in moved
-        for rid in ['a1nfC00000VFAI6QAP','a1pJ40000008XEvIAM','a1oJ40000009gGfIAI']:
+        for rid in ['a1pJ40000008XEvIAM','a1oJ40000009gGfIAI']:
             assert rid in new_ids and rid not in moved
-        assert plans['a1nJ4000000KcG8IAK'][1]=='a1pJ40000008Xi7IAE'
-        assert plans['a1nJ4000000KcG4IAK'][1]=='a1pJ40000008Xi7IAE'
+        assert plans['a1nfC00000VF9uNQAT'][1] is None
+        assert plans['a1nfC00000VF9uNQAT'][2]=='a1oJ40000009JMgIAM'
+        assert plans['a1pJ40000008X7QIAU'][1] is None
+        assert plans['a1pJ40000008ZWAIA2'][1]=='a1oJ40000009JMEIA2'
         result={'moved':len(moved),'moved_by_object':dict(counts),'remaining_data_rows':remaining_count,
                 'total_unique_source_ids':len(new_ids),'changed_parts':sorted(changed),
-                'added_parts':sorted(added),'all_review_decisions_blank':True}
+                'added_parts':sorted(added),'all_new_review_decisions_blank':True,
+                'previous_parent_rows':existing_count,'total_parent_rows':last-1,
+                'new_status_counts':dict(status_counts),'remaining_self_recommendations':0}
     workbook=openpyxl.load_workbook(after,read_only=True)
     assert workbook.sheetnames==newnames and len(workbook.sheetnames)==15
     assert workbook[TITLE].max_row==last and workbook[TITLE].max_column==24
