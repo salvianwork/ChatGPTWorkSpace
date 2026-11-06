@@ -29,6 +29,9 @@ def city_parts(value):
 
 
 ALIASES = json.loads(Path(__file__).with_name('regional_aliases.json').read_text())
+# Reviewed regional names that must not acquire city IDs from letter similarity.
+# Keep strong same-level evidence and cross-level findings as separate review data.
+NON_CITY_FUZZY_NAMES = {'madura'}
 
 
 def name_with_validated_parent(name, level, parent):
@@ -102,7 +105,7 @@ def ranked_candidates(level, name, parent, paths, province_paths=()):
                 matches = [p for p in eligible if city_parts(p[-1])[1] == core]
                 if len(matches) > 1:
                     reason += ' Ambigu: lebih dari satu wilayah memiliki nama inti yang sama.'
-        if province_name and priority == 3:
+        if (province_name or (level == 1 and normalize(name,0) in NON_CITY_FUZZY_NAMES)) and priority == 3:
             continue
         if priority < 3 or score >= 50:
             candidates.append((priority, score, path, reason))

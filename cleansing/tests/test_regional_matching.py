@@ -6,6 +6,18 @@ from regional_matching import ranked_candidates, district_context_candidates, ci
 
 
 class RegionalMatchingTests(unittest.TestCase):
+    def test_madura_does_not_suggest_madiun_from_letters(self):
+        paths=[('Jawa Timur','Kab. Madiun'),('Jawa Timur','Kota Madiun')]
+        self.assertEqual(ranked_candidates(1,'Madura',('Jawa Timur',),paths),[])
+        self.assertEqual(ranked_candidates(1,' MADURA. ',('Jawa Timur',),paths),[])
+
+    def test_madura_guard_preserves_other_levels_and_strong_evidence(self):
+        path=('Jawa Tengah','Kab. Cilacap','Wanareja','Madura')
+        self.assertEqual(ranked_candidates(3,'Madura',path[:-1],[path])[0][2],path)
+        # A future exact master entry remains evidence; the rule blocks fuzzy guesses.
+        path=('Jawa Timur','Madura')
+        self.assertEqual(ranked_candidates(1,'Madura',path[:-1],[path])[0][0],0)
+
     def test_province_name_does_not_suggest_similar_cities(self):
         paths=[('Lampung','Kab. Lampung '+suffix) for suffix in ['Barat','Timur','Utara']]
         self.assertEqual(len(ranked_candidates(1,'Lampung',('Lampung',),paths)),3)

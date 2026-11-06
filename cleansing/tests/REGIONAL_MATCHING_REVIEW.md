@@ -824,3 +824,50 @@ Helper memerlukan lokasi backup baru dan menolak penerapan ulang pada sheet
 yang sudah memakai format 19 kolom. Pemeriksa pemisahan ID tetap sebelumnya
 berlaku untuk tahap antara 24 kolom; pemeriksa relasi ini berlaku untuk hasil
 tampilan terakhir.
+
+## Finalisasi Daikin: Madura dan kolom penghitung teknis
+
+`regional_matching.py` menahan kandidat kota/kabupaten yang hanya berdasarkan
+kemiripan huruf untuk nama kawasan Madura. Madura a1oJ40000009JPKIA2 sebelumnya
+mendapat Kab. Madiun a1oJ40000009JPJIA2 (skor 53,33) dan Kota Madiun
+a1ofC00000EcXDLQA3 (skor 50). Kesamaan provinsi Jawa Timur dan huruf tersebut
+tidak membuktikan wilayah yang sama. Kecocokan nama yang kuat dan penggunaan
+Madura sebagai kelurahan tetap diperbolehkan; aturan ini tidak menaikkan batas
+kemiripan seluruh nama atau menghapus saran nama lain yang sah.
+
+`finalize_daikin_review.py` adalah tahap tampilan terakhir setelah branding,
+pemisahan ID tetap, dan format baris hubungan. Tahap internal tetap dapat
+memakai jumlah kandidat untuk pengolahan, tetapi kolom Jumlah Rekomendasi
+Ditampilkan tidak dikeluarkan pada file final Tim Daikin. Jalankan finalisasi
+setiap kali membentuk ulang file Daikin agar kolom tidak muncul kembali.
+
+Rekomendasi pertama Madura dikosongkan dan alasan konfirmasinya diperjelas.
+Dua saran Madiun di PILIHAN MAPPING dihapus; dua temuan lintas tingkat Madura
+tetap sama, dengan nomor urut menjadi 1 dan 2. DATA BELUM JELAS tetap 17.128
+data dengan 23 kolom. ID rekomendasi pertama kosong menjadi 5.635, terdiri
+dari 3.615 rekomendasi lokasi tanpa ID dan 2.020 data tanpa rekomendasi.
+PILIHAN MAPPING menjadi 58.587 baris. Dropdown keputusan bergeser dari R ke Q
+dengan pilihan yang sama. Seluruh ID sumber, kolom final Tim Daikin, gaya,
+dan nilai lain tetap terjaga. Tiga belas sheet lain identik secara byte,
+termasuk RINGKASAN dan 12.570 baris hubungan Parent untuk 9.000 ID unik.
+Jumlah/urutan 15 sheet tetap dan tidak ada formula baru. Workbook asli,
+CSV sumber, workbook lain, dan ZIP tidak diperbarui.
+
+90 pengujian unit lulus. Pemeriksaan final membandingkan setiap nilai dan gaya
+sel yang dipertahankan, dropdown, metadata, dua kandidat yang dihapus, temuan
+lintas tingkat, dan integritas workbook:
+
+```sh
+python cleansing/scripts/finalize_daikin_review.py \
+  --workbook 'cleansing/client_review/Mandatory for Client/Daikin_Cleansing_Data_Regional.xlsx' \
+  --backup /tmp/daikin-before-madura-final.xlsx \
+  --report /tmp/daikin-madura-final-report.json
+python cleansing/tests/check_daikin_final_review.py \
+  /tmp/daikin-before-madura-final.xlsx \
+  'cleansing/client_review/Mandatory for Client/Daikin_Cleansing_Data_Regional.xlsx'
+```
+
+Finalisasi memerlukan path backup baru dan melindungi isian review Madura yang
+sudah diisi dari perubahan pilihan secara diam-diam. Pemeriksa tahap baris
+hubungan sebelumnya tetap dipakai sebelum finalisasi; pemeriksa ini dipakai
+untuk file final 23 kolom pada DATA BELUM JELAS.
