@@ -871,3 +871,73 @@ Finalisasi memerlukan path backup baru dan melindungi isian review Madura yang
 sudah diisi dari perubahan pilihan secara diam-diam. Pemeriksa tahap baris
 hubungan sebelumnya tetap dipakai sebelum finalisasi; pemeriksa ini dipakai
 untuk file final 23 kolom pada DATA BELUM JELAS.
+
+## Rename dengan ID tetap untuk nama yang memuat keterangan Parent setelah koma
+
+`regional_rename.py` memeriksa nama kecamatan/kelurahan yang mempunyai
+keterangan Parent setelah koma. Bagian nama harus cocok dengan satu lokasi
+master di seluruh Parent yang sesuai; setiap keterangan setelah koma harus
+sesuai urutan Parent sebenarnya. ID Parent sumber wajib sama dengan ID Parent
+master yang sudah dipastikan. Untuk kelurahan, hubungan kabupaten/kota
+langsung juga wajib benar. Data dengan hubungan kosong, konflik, atau
+hasil perkiraan tidak memenuhi syarat. Beberapa sumber untuk lokasi yang
+sama, normalisasi nama master yang ambigu, atau ID master lain yang masih
+bermasalah tetap memerlukan review.
+
+`candidate_id_review` dapat mengusulkan ID sumber tersebut untuk rename
+tanpa mengubah pemilihan ID utama otomatis, `_path`, atau mapping data anak.
+Rekomendasi dengan kecocokan nama dan keterangan Parent yang lengkap tidak
+lagi diikuti saran kemiripan huruf yang tidak terkait. Seratus pengujian unit
+lulus, termasuk 10 pengujian nama dengan koma, Parent salah/kosong, pemulihan
+hubungan, beberapa ID, ID master konflik, hubungan kota langsung, dan
+perlindungan terhadap perubahan input.
+
+Penerapan pertama menemukan 11 kecamatan di Sumatra Selatan: Belimbing,
+Bunga Mayang, Cempaka, Kandis, Lais, Martapura, Mesuji, Purwodadi, Sungai
+Pinang, Tanjung Raja, dan Ujan Mas, masing-masing pada kabupaten sumbernya.
+Contoh Belimbing a1pJ40000008X0WIAU: nama Belimbing, Muara Enim diusulkan
+menjadi Belimbing, ID tetap, dan Parent a1oJ40000009JPgIAM tetap. Relasi
+master Sumatra Selatan | Kab. Muara Enim | Belimbing. Data bernama sama di
+kabupaten/provinsi lain tidak menjadi dasar untuk kasus tersebut.
+
+`daikin_qualified_renames.py` memindahkan 11 sumber dari DATA BELUM JELAS ke
+PERUBAHAN KECAMATAN sebagai usulan perubahan Nama saja. Data dengan isian
+review yang sudah diisi ditunda, termasuk calon insert yang sudah mempunyai
+jawaban Tim Daikin. Lokasi yang sama dikeluarkan dari CALON DATA BARU agar
+tidak diusulkan dibuat ulang. Sebanyak 29 baris bukti mapping untuk sumber
+yang sudah dipindahkan dihapus dari antrean PILIHAN MAPPING; baris lainnya
+identik. Tidak ada ID final yang diisi otomatis.
+
+Hasil akhir: PERUBAHAN KECAMATAN 619 data, DATA BELUM JELAS 17.117 data,
+CALON DATA BARU 20.511 lokasi, dan PILIHAN MAPPING 58.558 baris. RINGKASAN
+mengikuti perubahan kelompok tersebut. Data valid, duplikat, dan sheet
+PERBAIKAN PARENT - ID TETAP tidak berubah. Semua 91.306 ID sumber tetap ada
+tepat satu kali pada kelompoknya, setelah ID per hubungan disatukan.
+Seluruh input, gaya, dropdown, urutan baris tersisa dan urutan 15 sheet
+terjaga. Workbook asli, CSV sumber, ZIP dan workbook lainnya tidak berubah.
+
+Perbandingan dua eksekusi pipeline ke direktori sementara membuktikan
+26 CSV nonkandidat identik secara byte. Hanya Review_candidates.csv berubah:
+52.092 menjadi 52.004 kandidat (88 saran fuzzy dihapus pada nama dengan
+keterangan Parent yang sudah cocok). Sebelas kandidat mendapatkan ID sumber
+sebagai usulan rename dan penjelasan ID diperbarui. Tidak ada kandidat lokasi
+baru atau perubahan mapping anak otomatis.
+
+Tahap ini dijalankan sesudah finalisasi Daikin, dengan direktori pipeline
+asli berkolom bahasa Inggris dari `cleanse.py` sebelum penerjemahan:
+
+```sh
+python cleansing/scripts/daikin_qualified_renames.py \
+  --workbook 'cleansing/client_review/Mandatory for Client/Daikin_Cleansing_Data_Regional.xlsx' \
+  --pipeline /tmp/qualified-rename-after \
+  --backup /tmp/daikin-before-qualified-renames.xlsx \
+  --report /tmp/daikin-qualified-renames-report.json
+python cleansing/tests/check_daikin_qualified_renames.py \
+  /tmp/daikin-before-qualified-renames.xlsx \
+  'cleansing/client_review/Mandatory for Client/Daikin_Cleansing_Data_Regional.xlsx' \
+  /tmp/qualified-rename-after
+```
+
+Pemeriksa terbaru memvalidasi proposal rename, ID Parent yang sama,
+penghapusan calon insert terkait, seluruh ID sumber, isian review, nilai
+dan gaya baris lain, dropdown, ringkasan, formula dan integritas workbook.

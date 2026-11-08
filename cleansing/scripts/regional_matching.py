@@ -110,6 +110,8 @@ def ranked_candidates(level, name, parent, paths, province_paths=()):
         if priority < 3 or score >= 50:
             candidates.append((priority, score, path, reason))
     candidates.sort(key=lambda item: (item[0], -item[1], item[2]))
+    if qualified_name is not None and any(c[0]==0 for c in candidates):
+        return [c for c in candidates if c[0]<3]
     # Retain all exact/alias/core evidence, plus at most three fuzzy suggestions.
     return [c for c in candidates if c[0] < 3] + [c for c in candidates if c[0] == 3][:3]
 

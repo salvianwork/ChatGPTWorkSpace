@@ -1,5 +1,6 @@
 """Explain review candidates independently of automatic canonical mapping."""
 from regional_matching import ALIASES, normalize
+from regional_rename import qualified_rename_matches
 
 REVIEW_FIELDS = {
     'Review_Kind': 'Jenis_Rekomendasi',
@@ -25,7 +26,8 @@ def unknown_parent_city_candidates(name, proposed, paths):
              'perlu dikonfirmasi. ID final tidak ditetapkan otomatis.')]
 
 
-def candidate_id_review(source, candidate_path, inventory, preferred_records, matching_records, reason=''):
+def candidate_id_review(source, candidate_path, inventory, preferred_records, matching_records, reason='',
+                        qualified_records=(),target_ids=None):
     """Return verified destination separately from IDs still requiring review.
 
     Inputs are read-only. A raw master ID never becomes verified simply because
@@ -81,6 +83,14 @@ def candidate_id_review(source, candidate_path, inventory, preferred_records, ma
         else:
             status = 'BELUM_ADA_ID_TERVERIFIKASI'
             explanation = 'Belum ada ID Salesforce terverifikasi untuk hierarki ini. Telusuri ekspor dan master; jangan mengambil ID dari lokasi lain.'
+    if (not verified and not unverified and target_ids is not None and len(qualified_records)==1
+            and qualified_records[0]['Source_Id']==source['Source_Id']
+            and qualified_rename_matches(source,candidate_path,target_ids)):
+        verified=source['Source_Id'];status='ID_ALTERNATIF_TERVERIFIKASI_UNTUK_REVIEW'
+        kind='KOREKSI_RECORD_YANG_SAMA'
+        explanation=('Nama sebelum koma sesuai master dan keterangan setelah koma cocok dengan Parent yang tercatat. '
+                     'Pertahankan ID sumber sebagai usulan; cukup sesuaikan nama setelah konfirmasi. '
+                     'Hubungan Parent sudah sesuai. Tidak perlu membuat data baru untuk usulan ini.')
     if (status == 'BELUM_ADA_ID_TERVERIFIKASI' and reason.startswith('Nama kecamatan sama pada master, tetapi kota/kabupaten berbeda:')
             and source.get('_parent') and source['_parent'][:1] == candidate_path[:1]
             and normalize(source['Source_Name'],2) == normalize(candidate_path[-1],2)):
