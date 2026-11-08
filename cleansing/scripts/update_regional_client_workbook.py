@@ -21,7 +21,7 @@ from reclassify_valid_regions import existing_pending_ids, reclassify
 from regional_review import REVIEW_FIELDS
 from regional_parent_actions import PARENT_REVIEW_FIELDS
 from regional_id_explanations import ID_NOTE_FIELDS
-from regional_client_display import CHOICE_HEADERS, MAPPING_HEADERS, client_candidate, mapping_row, source_text, ensure_selection_matches
+from regional_client_display import CHOICE_HEADERS, MAPPING_HEADERS, client_candidate, mapping_row, source_text, ensure_selection_matches, clarify_no_exact_rows
 
 NS = {'m': 'http://schemas.openxmlformats.org/spreadsheetml/2006/main'}
 TAG = '{' + NS['m'] + '}'
@@ -185,7 +185,7 @@ def _apply_notes(workbook, candidates, backup):
         ms={column_index_from_string(re.sub(r'\d','',c.get('r'))):c.get('s') for c in template}
         mapping_header_style=mh[0].get('s')
         content=io.BytesIO()
-        for i,vals in enumerate([MAPPING_HEADERS]+[mapping_row(d) for d in records],1):
+        for i,vals in enumerate([MAPPING_HEADERS]+clarify_no_exact_rows([mapping_row(d) for d in records]),1):
             row=E.Element(TAG+'row',nsmap={None:NS['m']},r=str(i))
             for col,v in enumerate(vals,1):
                 if v=='':continue

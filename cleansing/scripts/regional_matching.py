@@ -34,6 +34,34 @@ ALIASES = json.loads(Path(__file__).with_name('regional_aliases.json').read_text
 NON_CITY_FUZZY_NAMES = {'madura'}
 
 
+def province_name_forms(value):
+    """Official master names may include a province abbreviation in parentheses."""
+    forms={normalize(value,0)}
+    match=re.fullmatch(r'\s*([^()]+?)\s*\(([^()]+)\)\s*',str(value or ''))
+    if match:
+        forms.update(normalize(part,0) for part in match.groups())
+    return forms-{''}
+
+
+def parenthesized_name_core(value,level):
+    """Recognize spelling aliases, never discard a different location qualifier."""
+    if level not in (2,3):return None
+    match=re.fullmatch(r'\s*([^(),]+?)\s*\(([^()]+)\)\s*',str(value or ''))
+    if not match:return None
+    core,extra=match.groups();base=normalize(core,level)
+    modifiers={'barat','timur','utara','selatan','tengah','hulu','hilir','pesisir','kota',
+               'kabupaten','provinsi','lama','baru','induk'}
+    core_words=set(re.findall(r'\w+',core.casefold()))
+    extra_words=set(re.findall(r'\w+',extra.casefold()))
+    if (extra_words-core_words)&modifiers:return None
+    aliases=[normalize(a.strip(),level) for a in re.split(r'[/,;]',extra)]
+    if any((a.startswith(m) and not base.startswith(m)) or (a.endswith(m) and not base.endswith(m))
+           for a in aliases for m in modifiers):return None
+    if not base or not all(aliases):return None
+    if not all(difflib.SequenceMatcher(None,base,a).ratio()>=.60 for a in aliases):return None
+    return core.strip()
+
+
 def name_with_validated_parent(name, level, parent):
     """Remove comma qualifiers only when each matches a known parent component.
 
@@ -71,9 +99,12 @@ def ranked_candidates(level, name, parent, paths, province_paths=()):
     """
     eligible = sorted(p for p in paths if parent is None or p[:-1] == parent)
     province_name = level == 1 and any(
-        normalize(name, 0) == normalize(p[0], 0) for p in province_paths)
+        normalize(name, 0) in province_name_forms(p[0]) for p in province_paths)
     candidates = []
     qualified_name = name_with_validated_parent(name, level, parent)
+    core=parenthesized_name_core(name,level) if parent is not None else None
+    core_matches=[p for p in eligible if core and normalize(core,level)==normalize(p[-1],level)]
+    if len(core_matches)!=1 or any(normalize(name,level)==normalize(p[-1],level) for p in eligible):core=None
     for path in eligible:
         score = round(100 * difflib.SequenceMatcher(
             None, normalize(name, level), normalize(path[-1], level)).ratio(), 2)
@@ -87,6 +118,10 @@ def ranked_candidates(level, name, parent, paths, province_paths=()):
             reason = ('Nama wilayah sama setelah keterangan induk setelah koma dicocokkan '
                       'dengan hierarki induk yang sudah teridentifikasi; perlu dikonfirmasi. '
                       'Nama sumber dipertahankan dan ID final tidak ditetapkan otomatis.')
+        elif core is not None and normalize(core,level)==normalize(path[-1],level):
+            priority=0
+            reason=('Nama sebelum tanda kurung sama dengan master; alias dalam tanda kurung adalah variasi ejaan. '
+                    'Parent yang sama menjadi batas lokasi. Nama sumber dan ID final tetap perlu dikonfirmasi.')
         elif parent is None:
             continue
         elif any(a['level'] == level and normalize(a['province'], 0) == normalize(path[0], 0)
@@ -110,7 +145,7 @@ def ranked_candidates(level, name, parent, paths, province_paths=()):
         if priority < 3 or score >= 50:
             candidates.append((priority, score, path, reason))
     candidates.sort(key=lambda item: (item[0], -item[1], item[2]))
-    if qualified_name is not None and any(c[0]==0 for c in candidates):
+    if (qualified_name is not None or core is not None) and any(c[0]==0 for c in candidates):
         return [c for c in candidates if c[0]<3]
     # Retain all exact/alias/core evidence, plus at most three fuzzy suggestions.
     return [c for c in candidates if c[0] < 3] + [c for c in candidates if c[0] == 3][:3]

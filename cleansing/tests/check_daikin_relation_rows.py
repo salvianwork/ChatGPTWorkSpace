@@ -40,7 +40,14 @@ def check(before,after,pipeline):
             rid,kind=v[1],v[3];assert rid in old and (rid,kind) in expected_keys and (rid,kind) not in seen
             assert old_index[rid]>=previous;previous=old_index[rid]
             seen.add((rid,kind));id_counts[rid]+=1;kinds[kind]+=1;p=old[rid]
-            assert v[:3]==p[:3] and v[11]==p[15] and v[13]==p[17]
+            assert v[:3]==p[:3] and v[13]==p[17]
+            if v[7]:
+                expected_status=('ID relasi tersedia; nama data perlu dikonfirmasi' if 'nama' in p[15].casefold()
+                                 else 'ID relasi tersedia; menunggu konfirmasi Tim Daikin')
+            elif p[15].casefold().startswith('lokasi'):expected_status='Lokasi dan ID relasi masih perlu dikonfirmasi'
+            elif 'nama' in p[15].casefold():expected_status='ID relasi dan nama data masih perlu dikonfirmasi'
+            else:expected_status='ID relasi masih perlu dikonfirmasi'
+            assert v[11]==expected_status
             direct=kind==DIRECT
             assert v[4]==p[9 if direct else 4] and v[6]==p[10 if direct else 6]
             assert v[7:9]==(p[11],p[12]) if direct else v[7:9]==(p[7],p[8])

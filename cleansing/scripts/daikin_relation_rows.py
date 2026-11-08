@@ -16,6 +16,14 @@ HEADERS=['Objek','Id Data','Nama Data','Hubungan yang Diperiksa','Id Relasi Seka
 PRIMARY='Parent Kecamatan';CITY_PARENT='Parent Kabupaten/Kota';DIRECT='Kabupaten/Kota Langsung'
 
 
+def relationship_status(proposal_id,source_status):
+    if not proposal_id:
+        if source_status.casefold().startswith('lokasi'):return 'Lokasi dan ID relasi masih perlu dikonfirmasi'
+        return 'ID relasi dan nama data masih perlu dikonfirmasi' if 'nama' in source_status.casefold() else 'ID relasi masih perlu dikonfirmasi'
+    if 'nama' in source_status.casefold():return 'ID relasi tersedia; nama data perlu dikonfirmasi'
+    return 'ID relasi tersedia; menunggu konfirmasi Tim Daikin'
+
+
 def master_relation(first,choices,master_paths):
     paths=list(dict.fromkeys(c['Hierarki_Kandidat'] for c in choices))
     if first not in paths or not paths or any(p not in master_paths for p in paths):
@@ -57,7 +65,7 @@ def relation_rows(v,master,current_names=None):
                 if other[3]:note+=' Lokasi dari pencocokan: '+other[3]+'.'
         if v[16]:note+='\n\nCatatan data sebelum pemisahan baris:\n'+v[16]
         result.append([v[0],v[1],v[2],label,current,name,location,proposal,proposed_name,master,
-                       action,v[15],note,v[17],v[18],v[19] if primary else v[20],v[21],v[22],v[23]])
+                       action,relationship_status(proposal,v[15]),note,v[17],v[18],v[19] if primary else v[20],v[21],v[22],v[23]])
     return result
 
 

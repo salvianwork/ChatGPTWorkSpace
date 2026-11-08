@@ -941,3 +941,72 @@ python cleansing/tests/check_daikin_qualified_renames.py \
 Pemeriksa terbaru memvalidasi proposal rename, ID Parent yang sama,
 penghapusan calon insert terkait, seluruh ID sumber, isian review, nilai
 dan gaya baris lain, dropdown, ringkasan, formula dan integritas workbook.
+
+## Empat perbaikan rekomendasi dan penjelasan review
+
+Nama provinsi pada master dapat mempunyai alias dalam tanda kurung, misalnya
+Aceh (NAD). `province_name_forms` mengenali Aceh dan NAD untuk menahan usulan
+kota/kabupaten yang hanya berasal dari kemiripan huruf. Kecocokan kuat pada
+tingkat kota/kabupaten tetap dipertahankan. Aceh a1ofC000000MuErQAK tidak
+lagi direkomendasikan ke Kab. Aceh Jaya/Barat/Besar. Temuan provinsi dari
+Master dan ekspor Salesforce ditambahkan sebagai informasi tanpa ID tujuan;
+temuan kelurahan yang sudah ada dipertahankan.
+
+`parenthesized_name_core` mengenali variasi ejaan dalam tanda kurung pada
+tingkat kecamatan/kelurahan. Nama inti harus cocok dengan tepat satu nama
+master pada Parent yang sama. Nama literal lengkap pada master tetap
+diutamakan. Keterangan arah/wilayah seperti Barat, Utara, Pesisir atau Induk
+tidak dibuang sebagai alias ejaan, termasuk bentuk kata yang disambung.
+Parent yang belum diketahui tidak ditebak. ID master tetap dipilih melalui
+pemeriksaan ID yang sudah ada; Source ID dan pilihan ID utama tidak diganti
+otomatis.
+
+Penerapan memperbarui 36 rekomendasi alias pada DATA BELUM JELAS. Kulisusu
+(Kalingsusu/Kalisusu) a1pJ40000008XNrIAM kini mempunyai rekomendasi Sulawesi
+Tenggara | Kab. Buton Utara | Kulisusu, ID a1pfC00000DcH4HQAV, sesuai master.
+Kulisusu Barat dan Utara tidak lagi menjadi usulan untuk sumber ini. Ini
+tetap rekomendasi yang perlu diperiksa, bukan instruksi mengganti ID tanpa
+persetujuan. Kasus yang ID lokasinya belum dapat dipastikan tetap kosong,
+dengan alasan dan penjelasan alias yang tetap ditampilkan.
+
+Sebanyak 2.679 baris PILIHAN MAPPING diperjelas menjadi Nama persis belum
+ditemukan; ada kandidat, hanya bila sumber tersebut mempunyai kandidat
+pada tingkat yang sama. Bukti lintas tingkat saja tidak dianggap kandidat
+mapping. `clarify_no_exact_rows` juga diterapkan pada pembentukan workbook
+regional agar penjelasan lama tidak muncul kembali.
+
+Status pada 12.570 baris hubungan Parent kini menjelaskan ketersediaan ID
+relasi pada baris tersebut. Ada 5.153 baris ID tersedia menunggu konfirmasi,
+107 ID tersedia dengan nama data perlu konfirmasi, 1.208 ID relasi belum
+pasti, dan 6.102 lokasi serta ID relasi belum pasti. Pada 254 baris yang ID
+relasinya sudah tersedia tetapi hubungan lain belum pasti, catatan
+ketergantungan ditambahkan. Tidak ada keputusan, ID final, Parent, relasi
+master, atau bukti lama yang dihapus.
+
+Jumlah DATA BELUM JELAS tetap 17.117: 11.492 memiliki ID rekomendasi, 3.604
+memiliki lokasi rekomendasi dengan ID kosong, dan 2.021 belum mempunyai
+rekomendasi. Total ID rekomendasi kosong 5.625. PILIHAN MAPPING menjadi
+58.547 baris; 49 usulan lama pada 37 sumber terkait digantikan 36 kandidat
+alias dan dua bukti provinsi. Dua belas sheet lain, termasuk RINGKASAN,
+tetap identik secara byte. Seluruh 91.306 ID sumber tetap terjaga; 15 sheet serta urutannya
+tetap, dan tidak ada formula baru. Workbook asli dan CSV sumber tidak berubah.
+
+110 pengujian unit lulus. Sebanyak 26 keluaran CSV nonkandidat identik dengan
+baseline; hanya kandidat review yang berubah. Terapkan tahap ini setelah
+finalisasi/rename dengan direktori keluaran mentah `cleanse.py`:
+
+```sh
+python cleansing/scripts/daikin_review_clarity.py \
+  --workbook 'cleansing/client_review/Mandatory for Client/Daikin_Cleansing_Data_Regional.xlsx' \
+  --pipeline /tmp/review-clarity-final \
+  --backup /tmp/daikin-before-review-clarity.xlsx \
+  --report /tmp/daikin-review-clarity-report.json
+python cleansing/tests/check_daikin_review_clarity.py \
+  /tmp/daikin-before-review-clarity.xlsx \
+  'cleansing/client_review/Mandatory for Client/Daikin_Cleansing_Data_Regional.xlsx' \
+  /tmp/review-clarity-final
+```
+
+Pemeriksaan mencocokkan sumber/Parent/jawaban review sebelum dan sesudah,
+seluruh kandidat serta bukti yang tidak terkait, label konfirmasi, status per
+hubungan, gaya, dropdown, jumlah/urutan sheet, dan integritas workbook.

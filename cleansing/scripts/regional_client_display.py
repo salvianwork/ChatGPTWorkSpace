@@ -84,7 +84,9 @@ def client_candidate(d):
         # The context explains the choice; add an ID warning only when still needed.
         note=context+(' '+note if not target else '')
     elif raw_status=='ID_TERVERIFIKASI':
-        if 'keterangan induk setelah koma' in reason:
+        if 'alias dalam tanda kurung' in reason:
+            note='Nama inti cocok dengan master pada Parent yang sama. Nama dalam tanda kurung adalah variasi ejaan; pastikan data dan ID yang akan digunakan.'
+        elif 'keterangan induk setelah koma' in reason:
             note='Nama cocok setelah keterangan wilayah setelah koma diperiksa.'
         elif 'Alias' in reason or 'alias' in reason:
             note='Nama singkat atau nama usulan mengarah ke lokasi ini. Client perlu memastikan provinsinya.'
@@ -128,7 +130,25 @@ def client_candidate(d):
                          'INDUK_ID_MASTER_PERLU_KONFIRMASI','KOTA_SUMBER_PERLU_KONFIRMASI',
                          'KONFLIK_RELASI_ID_MASTER','ID_TERVERIFIKASI'})
         note=parent_note if can_replace else note+'\n\n'+parent_note
+    if 'alias dalam tanda kurung' in reason and 'tanda kurung' not in note:
+        note='Nama inti sebelum tanda kurung cocok dengan master pada Parent yang sama. Lokasi dan ID tujuan tetap perlu dikonfirmasi.\n\n'+note
     return [d['Nama_Kandidat'],d['Hierarki_Kandidat'],chosen,status,note]
+
+
+NO_EXACT_WITH_CANDIDATES=('Nama persis belum ditemukan; ada kandidat',
+    'Nama yang sama persis belum ditemukan. Ada kandidat nama/lokasi untuk diperiksa; kandidat belum menjadi keputusan mapping.')
+
+
+def clarify_no_exact_rows(rows):
+    """Qualify the no-exact-name message when the source also has candidates."""
+    has_candidates={r[1] for r in rows if r[5] and r[7]!='Nama ditemukan di tingkat lain'}
+    result=[]
+    for r in rows:
+        r=list(r)
+        if r[1] in has_candidates and r[7] in {'Nama belum ditemukan',NO_EXACT_WITH_CANDIDATES[0]}:
+            r[7],r[8]=NO_EXACT_WITH_CANDIDATES
+        result.append(r)
+    return result
 
 
 def mapping_row(d):
