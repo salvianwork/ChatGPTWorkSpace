@@ -5,6 +5,9 @@ CHOICE_HEADERS = [f'Pilihan_{i}_{field}' for i in range(1,4) for field in CHOICE
 MAPPING_HEADERS = ['Objek','Id_Sumber','Nama_Sumber','Urutan','Nama_Rekomendasi',
                    'Lokasi_Rekomendasi','ID_Salesforce_Rekomendasi','Status_Rekomendasi',
                    'Catatan_Rekomendasi','Sumber_Data','Tingkat_Ditemukan','Jumlah_Lokasi']
+INFORMATIONAL_STATUSES = {'Nama ditemukan di tingkat lain',
+                          'Nama sama; lokasi perlu dikonfirmasi',
+                          'Nama berbeda; perlu konfirmasi'}
 
 STATUS_TEXT = {
     'KOTA_SUMBER_PERLU_KONFIRMASI': ('Kabupaten/kota perlu dikonfirmasi','Nama kecamatan sesuai master. Pastikan perubahan kabupaten/kota pada data ini.'),
@@ -57,6 +60,13 @@ def client_candidate(d):
     All verified/provisional IDs remain in the internal CSV for audit.
     """
     if d['Jenis_Bukti']!='KANDIDAT_OBJEK_SAMA':
+        if d['Jenis_Bukti']=='NAMA_SAMA_LOKASI_LAIN':
+            locations=d.get('Contoh_Lokasi','')
+            count=int(d.get('Jumlah_Kemunculan') or 0)
+            if count>3:locations+=f'; +{count-3} lokasi lainnya'
+            return [d.get('Nama_Kandidat',''),locations,'','Nama sama; lokasi perlu dikonfirmasi',
+                    'Nama ada pada master, tetapi hubungan Parent pada data sumber belum cocok atau belum lengkap. '
+                    'Pastikan lokasi dan provinsi sebelum menentukan ID tujuan.']
         found=d['Jenis_Bukti']=='TEMUAN_LINTAS_TINGKAT'
         return [d.get('Nama_Kandidat',''),d.get('Contoh_Lokasi',''),'','Nama ditemukan di tingkat lain' if found else 'Nama belum ditemukan',
                 'Nama ditemukan pada tingkat wilayah yang berbeda. Client perlu memastikan lokasi dan tingkat wilayahnya.' if found else 'Nama yang sama belum ditemukan pada master atau file Salesforce. Client perlu memastikan nama dan lokasinya.']
@@ -141,7 +151,7 @@ NO_EXACT_WITH_CANDIDATES=('Nama persis belum ditemukan; ada kandidat',
 
 def clarify_no_exact_rows(rows):
     """Qualify the no-exact-name message when the source also has candidates."""
-    has_candidates={r[1] for r in rows if r[5] and r[7]!='Nama ditemukan di tingkat lain'}
+    has_candidates={r[1] for r in rows if r[5] and r[7] not in INFORMATIONAL_STATUSES}
     result=[]
     for r in rows:
         r=list(r)
@@ -159,6 +169,7 @@ def mapping_row(d):
 def ensure_selection_matches(old_options, new_options, decision, choice=''):
     """Do not silently change what an already-filled client choice points to."""
     import re
+    if decision=='Gunakan rekomendasi 1':decision='PILIH_KANDIDAT_1'
     match=re.fullmatch(r'PILIH_KANDIDAT_([123])',str(decision or '').strip())
     if match:
         index=int(match[1])-1

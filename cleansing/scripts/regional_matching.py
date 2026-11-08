@@ -33,6 +33,19 @@ ALIASES = json.loads(Path(__file__).with_name('regional_aliases.json').read_text
 # Keep strong same-level evidence and cross-level findings as separate review data.
 NON_CITY_FUZZY_NAMES = {'madura'}
 
+REGION_MODIFIERS = {'utara','selatan','barat','timur','tengah','hulu','hilir','pesisir'}
+
+
+def conflicting_region_words(source, target):
+    """Opposing named parts are evidence against a spelling-only suggestion.
+
+    Check all words, including parenthesized names. Exact names and reviewed
+    aliases are handled before this guard; it never changes deterministic IDs.
+    """
+    words = lambda value: set(re.findall(r'\w+', str(value or '').casefold())) & REGION_MODIFIERS
+    left, right = words(source), words(target)
+    return bool(left and right and left.isdisjoint(right))
+
 
 def province_name_forms(value):
     """Official master names may include a province abbreviation in parentheses."""
@@ -141,6 +154,8 @@ def ranked_candidates(level, name, parent, paths, province_paths=()):
                 if len(matches) > 1:
                     reason += ' Ambigu: lebih dari satu wilayah memiliki nama inti yang sama.'
         if (province_name or (level == 1 and normalize(name,0) in NON_CITY_FUZZY_NAMES)) and priority == 3:
+            continue
+        if priority == 3 and conflicting_region_words(name, path[-1]):
             continue
         if priority < 3 or score >= 50:
             candidates.append((priority, score, path, reason))

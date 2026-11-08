@@ -1010,3 +1010,93 @@ python cleansing/tests/check_daikin_review_clarity.py \
 Pemeriksaan mencocokkan sumber/Parent/jawaban review sebelum dan sesudah,
 seluruh kandidat serta bukti yang tidak terkait, label konfirmasi, status per
 hubungan, gaya, dropdown, jumlah/urutan sheet, dan integritas workbook.
+
+## 8 November 2026 — bukti lengkap dan alur review yang lebih jelas
+
+Tahap `daikin_review_readability.py` diterapkan pada workbook Daikin sesudah
+`daikin_review_clarity.py`. Workbook asli `02_REVIEW_CLIENT_DATA_REGIONAL.xlsx`,
+workbook lain, CSV sumber, ZIP, serta README tidak diubah.
+
+Perubahan isi review:
+
+- Tujuh rekomendasi pertama yang hanya mirip tetapi berbeda penanda wilayah
+  dikosongkan, misalnya Misool Utara ke Misool Selatan dan Sei Kera Hilir ke
+  Sei Kera Hulu. Pada PILIHAN MAPPING, 97 alternatif seperti ini menjadi bukti
+  dengan ID kosong. Sebanyak 46 pilihan yang sama pada relasi master sheet
+  Parent dihapus; lokasi tetap tersedia sebagai bukti pada PILIHAN MAPPING.
+  Seluruh ID relasi usulan tetap. Nama inti Misool dan Rumbai yang benar-benar
+  ada pada master ditampilkan sebagai bukti tambahan, tanpa menetapkan ID.
+- Ada 855 data tanpa rekomendasi yang namanya ditemukan pada master, termasuk
+  819 data yang sebelumnya tidak memiliki rincian bukti. Lokasi master ditulis
+  di Alasan Belum Jelas dan PILIHAN MAPPING: maksimum tiga lokasi, disertai
+  jumlah lokasi lainnya. Bukti ini bukan rekomendasi ID. Contoh Sukarindik:
+  master Jawa Barat | Kota Tasikmalaya | Bungursari | Sukarindik, sementara
+  informasi Parent sumber mengarah ke lokasi berbeda.
+- Sebanyak 424 data dengan ID rekomendasi pertama kosong kini menjelaskan
+  bahwa kandidat lain ber-ID mewakili pilihan berbeda. Tidak ada promosi
+  alternatif berdasarkan ketersediaan ID. Contoh Hutanagodang: usulan Muara
+  tetap tanpa ID; ID kandidat Purbatua tidak menggantikannya.
+- Catatan pada 12.570 baris Parent disederhanakan menjadi ID tetap, hubungan
+  yang diperiksa, tindakan, dan konfirmasi yang diperlukan. Alasan khusus ID
+  relasi kosong tetap ditampilkan. Instruksi lama yang menyalin usulan pertama
+  berulang kali dihapus. Baris hubungan lain pada ID yang sama tetap dirujuk.
+
+Alur dan tampilan:
+
+- Semua kolom input Tim Daikin berwarna kuning, dengan tanggal memakai format
+  tanggal. Kolom ID/nama dibekukan di sheet review. Catatan memakai wrap text
+  dan tinggi baris disesuaikan; sel sangat panjang dapat dibaca lewat formula
+  bar atau F2, sesuai PETUNJUK.
+- Pilihan keputusan memakai bahasa sederhana. Gunakan rekomendasi 1 hanya
+  tersedia jika ada satu ID. Sebanyak 710 data yang memuat beberapa ID pada
+  satu lokasi diminta memilih satu lewat Gunakan ID lain dan Id Target Final.
+  Tidak ada ID yang dipilih otomatis.
+- Pada Parent, Setujui usulan hanya tersedia jika ID usulan ada. Gunakan ID
+  final tersedia untuk hasil konfirmasi lain. ID final harus satu ID Salesforce
+  berukuran 15 atau 18 karakter, tanpa spasi/titik koma. Sel yang masih wajib
+  diisi setelah keputusan dipilih ditandai merah, termasuk PIC dan tanggal.
+  Warna adalah alat bantu kelengkapan review, bukan persetujuan otomatis.
+- VALID KELURAHAN mempunyai lima kolom tambahan M–Q untuk 1.059 data yang
+  menunggu ID utama: keputusan, ID utama final, catatan, PIC, tanggal. Isian
+  hanya ditandai kuning pada kelompok tersebut. Data valid dan ID yang ada
+  tidak dipindahkan atau diubah. Jumlah Master/Calon Data Baru diberi satuan
+  lokasi; Menunggu ID Utama dijelaskan sebagai bagian dari Sudah Benar.
+- PDF dan PowerPoint diperbarui, masing-masing dua halaman/slide, memakai
+  angka dari workbook yang sama. Footer memuat hash Excel untuk mencocokkan
+  sumber. Grafik menghitung ID Salesforce unik; calon lokasi baru terpisah.
+
+Hasil: DATA BELUM JELAS tetap 17.117 data: 11.485 memuat ID rekomendasi,
+3.604 mempunyai lokasi rekomendasi tetapi ID kosong, dan 2.028 belum memiliki
+rekomendasi. Total sel ID rekomendasi kosong 5.632. Kelompok ber-ID mencakup
+710 data yang memerlukan pilihan satu ID final. PILIHAN MAPPING bertambah
+857 baris bukti menjadi 59.404; 855 bukti nama sama dan dua bukti nama inti.
+Seluruh sheet utama mempertahankan jumlah/urutan record. Tetap 15 sheet,
+91.306 ID sumber unik, dan 9.000 ID sumber pada 12.570 baris hubungan Parent.
+
+117 pengujian unit lulus. Validator independen membandingkan semua baris:
+ID/nama/Parent sumber, usulan Parent, jawaban review, kandidat yang tidak
+terkait, lokasi master sebenarnya, dropdown sesuai ketersediaan ID, format
+input, serta jumlah dan urutan sheet. Tidak ada formula sel baru; rumus
+kelengkapan hanya dipakai pada validasi input dan conditional formatting.
+Regenerasi pipeline menghasilkan 26 CSV nonkandidat identik secara byte;
+hanya kandidat review yang berbeda. Penerjemahan menghasilkan 855 bukti
+`NAMA_SAMA_LOKASI_LAIN` tanpa ID kandidat, terpisah dari temuan lintas tingkat.
+
+```sh
+python cleansing/scripts/daikin_review_readability.py \
+  --workbook 'cleansing/client_review/Mandatory for Client/Daikin_Cleansing_Data_Regional.xlsx' \
+  --pipeline /tmp/daikin-readability/pipeline \
+  --backup /tmp/daikin-before-readability.xlsx \
+  --report /tmp/daikin-readability-report.json
+python cleansing/tests/check_daikin_review_readability.py \
+  /tmp/daikin-before-readability.xlsx \
+  'cleansing/client_review/Mandatory for Client/Daikin_Cleansing_Data_Regional.xlsx' \
+  /tmp/daikin-readability/pipeline
+python cleansing/scripts/build_daikin_review_slides.py \
+  --workbook 'cleansing/client_review/Mandatory for Client/Daikin_Cleansing_Data_Regional.xlsx' \
+  --output-dir /tmp/daikin-slides
+```
+
+Tahap workbook menolak layout yang sudah memiliki kolom input ID utama;
+jangan diterapkan dua kali atau pada workbook yang sudah diisi tanpa review.
+Tahap tidak menghubungi atau mengubah Salesforce.

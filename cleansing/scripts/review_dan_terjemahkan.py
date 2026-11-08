@@ -68,14 +68,26 @@ for lev in range(4):
   sx[norm(x['Source_Name'],lev)].add(parent+(x['Source_Name'],))
  indices.append(ix);sf.append(sx)
 old=tables['Review_candidates.csv'][1];candidates=[];removed=0
+sources_with_candidates={x['Source_Id'] for x in old}
 for x in old:
  x=dict(x);x.update(Evidence_Type='KANDIDAT_OBJEK_SAMA',Found_Level=LEVELS[OBJECTS.index(x['Object'])],Data_Source='Master',Found_Count='',Location_Examples='',Parent_Context='')
  candidates.append(x)
-cross=[];unmatched=[];nohit=[]
+cross=[];same_name_elsewhere=[];unmatched=[];nohit=[]
 for lev,rows in enumerate(allrows):
  for x in rows:
   if x['Match_Method'] in ('EXACT_HIERARCHY','NORMALIZED_HIERARCHY','USER_SUPPLIED_CITY_NAME_CHANGE'):continue
   unmatched.append((lev,x));found=False
+  hits=sorted(indices[lev].get(norm(x['Source_Name'],lev),set()))
+  if hits and x['Source_Id'] not in sources_with_candidates:
+   # Evidence of an exact name elsewhere is useful even when the current Parent
+   # prevents a recommendation. It must never acquire a candidate/target ID.
+   cr={'Object':OBJECTS[lev],'Source_Id':x['Source_Id'],'Source_Name':x['Source_Name'],
+       'Rank':'','Similarity':'','Candidate_Path':'','Candidate_Name':x['Source_Name'],
+       'Reason':'Nama ada pada master, tetapi lokasi dan hubungan Parent perlu dikonfirmasi.',
+       'Candidate_Target_Id':'','Evidence_Type':'NAMA_SAMA_LOKASI_LAIN','Found_Level':LEVELS[lev],
+       'Data_Source':'Master','Found_Count':str(len(hits)),
+       'Location_Examples':'; '.join(' | '.join(p) for p in hits[:3]),'Parent_Context':''}
+   same_name_elsewhere.append(cr)
   for dest in range(4):
    if dest==lev:continue
    key=norm(x['Source_Name'],dest)
@@ -84,7 +96,8 @@ for lev,rows in enumerate(allrows):
     if not hits:continue
     found=True
     sameprovince=[p for p in hits if x.get('Resolved_Parent_Path') and p[0]==x['Resolved_Parent_Path'].split(' | ')[0]]
-    context='Ada kemunculan dalam provinsi asal.' if sameprovince else 'Tidak ada kemunculan yang terverifikasi dalam provinsi asal, atau provinsi asal belum diketahui.'
+    context=('Nama juga ditemukan di provinsi pada record yang sedang diperiksa.' if sameprovince else
+             'Provinsi pada record yang sedang diperiksa berbeda dari lokasi temuan atau belum diketahui.')
     examples=sorted(hits,key=lambda p:(p not in sameprovince,p))[:5]
     reason=f'Nama "{x["Source_Name"]}" ditemukan pada {LEVELS[dest].lower()} di {origin.lower()}. Ini temuan pada tingkat wilayah lain, bukan pemetaan lokasi yang sudah benar. ID kandidat sengaja dikosongkan. '
     if origin=='Ekspor Salesforce':reason+='Kemunculan dalam ekspor belum membuktikan bahwa data tersebut valid. '
@@ -99,12 +112,12 @@ for lev,rows in enumerate(allrows):
 order={x['Source_Id']:(lev,j) for lev,rows in enumerate(allrows) for j,x in enumerate(rows)}
 # Cross-level evidence must not suppress same-object review candidates.
 suppressed=0
-candidates=cross+nohit+candidates
+candidates=cross+same_name_elsewhere+nohit+candidates
 seen=set();dedup=[]
 for x in candidates:
  key=(x['Object'],x['Source_Id'],x['Evidence_Type'],x['Candidate_Path'],x['Found_Level'],x['Data_Source'],x['Reason'])
  if key not in seen:seen.add(key);dedup.append(x)
-candidates=sorted(dedup,key=lambda x:(order[x['Source_Id']],{'KANDIDAT_OBJEK_SAMA':0,'TEMUAN_LINTAS_TINGKAT':1,'BELUM_DITEMUKAN':2}[x['Evidence_Type']],x['Found_Level'],x['Data_Source'],int(x['Rank'] or 0)))
+candidates=sorted(dedup,key=lambda x:(order[x['Source_Id']],{'KANDIDAT_OBJEK_SAMA':0,'NAMA_SAMA_LOKASI_LAIN':1,'TEMUAN_LINTAS_TINGKAT':2,'BELUM_DITEMUKAN':3}[x['Evidence_Type']],x['Found_Level'],x['Data_Source'],int(x['Rank'] or 0)))
 ranks=collections.Counter()
 for x in candidates:
  ranks[x['Source_Id']]+=1;x['Rank']=str(ranks[x['Source_Id']])
@@ -211,7 +224,7 @@ rootlines+=['','## Cara membaca temuan lintas tingkat','','- `Jenis_Bukti = TEMU
 rootlines += [f'| {k} | {v} |' for k,v in sorted(H.items())]
 (OUT/'README.md').write_text('\n'.join(rootlines)+'\n')
 # These JSON schemas are technical audit outputs; preserve their keys and analyzed snapshot values.
-report={'kandidat_sebelumnya':len(old),'kandidat_sekarang':len(candidates),'sumber_dengan_temuan_lintas_tingkat':len({x['Source_Id'] for x in cross}),'baris_temuan_lintas_tingkat':len(cross),'sumber_belum_ditemukan':len({x['Source_Id'] for x in nohit}),'kandidat_inferensi_lintas_tingkat_lama_dihapus':removed,'kandidat_kemiripan_diganti_bukti_lintas_tingkat':suppressed,'semua_id_kandidat_lintas_tingkat_kosong':all(not x['Candidate_Target_Id'] for x in cross),'jumlah_record_sumber_tetap':sum(map(len,allrows)),'keputusan_update_dan_duplikat_tidak_diubah':True}
+report={'baris_nama_sama_lokasi_perlu_konfirmasi':len(same_name_elsewhere),'kandidat_sebelumnya':len(old),'kandidat_sekarang':len(candidates),'sumber_dengan_temuan_lintas_tingkat':len({x['Source_Id'] for x in cross}),'baris_temuan_lintas_tingkat':len(cross),'sumber_belum_ditemukan':len({x['Source_Id'] for x in nohit}),'kandidat_inferensi_lintas_tingkat_lama_dihapus':removed,'kandidat_kemiripan_diganti_bukti_lintas_tingkat':suppressed,'semua_id_kandidat_lintas_tingkat_kosong':all(not x['Candidate_Target_Id'] for x in cross),'jumlah_record_sumber_tetap':sum(map(len,allrows)),'keputusan_update_dan_duplikat_tidak_diubah':True}
 madura=[x for x in translated['Review_candidates.csv'] if x['Nama_Sumber'].casefold()=='madura']
 assert madura and all(not x['Id_Target_Kandidat'] for x in madura if x['Jenis_Bukti']=='TEMUAN_LINTAS_TINGKAT')
 (OUT/'07_Audit/Laporan_tinjauan_bahasa.md').write_text('# Validasi tinjauan dan penerjemahan\n\n'+'\n'.join(f'- {k}: {v}' for k,v in report.items())+'\n\nSeluruh nilai ID, nama wilayah, serta keputusan pada usulan update dan pemetaan duplikat dipertahankan. Pemeriksaan lintas tingkat hanya menambahkan bukti untuk ditinjau.\n')

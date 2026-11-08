@@ -31,6 +31,7 @@ MAPPING_KEYS = ['Objek','Id_Sumber','Nama_Sumber','Urutan','Kemiripan','Hierarki
 METADATA = list(REVIEW_FIELDS.values())
 EXTRA_HEADERS = [f'Pilihan_{i}_{name}' for i in range(1,4) for name in METADATA]
 PURPOSES = {'KANDIDAT_OBJEK_SAMA':'Pilihan mapping yang masih perlu dikonfirmasi',
+            'NAMA_SAMA_LOKASI_LAIN':'Nama sama pada master; lokasi dan Parent perlu dikonfirmasi',
             'TEMUAN_LINTAS_TINGKAT':'Petunjuk nama pada tingkat wilayah lain; bukan mapping otomatis',
             'BELUM_DITEMUKAN':'Belum ditemukan nama yang sama'}
 
