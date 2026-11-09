@@ -4,6 +4,7 @@ import json
 from pathlib import Path
 import re
 import unicodedata
+from functools import lru_cache
 
 
 def normalize(value, level):
@@ -99,6 +100,45 @@ def name_with_validated_parent(name, level, parent):
     return parts[0]
 
 
+@lru_cache(maxsize=65536)
+def identity_forms(value, level, parent):
+    """Validated spelling forms on either side of a review comparison."""
+    forms={normalize(value,level)}
+    if parent is None:return frozenset(forms)
+    qualified=name_with_validated_parent(value,level,parent)
+    for text in [value,qualified]:
+        if not text:continue
+        forms.add(normalize(text,level))
+        core=parenthesized_name_core(text,level)
+        if core:
+            forms.add(normalize(core,level))
+            extra=re.fullmatch(r'\s*[^()]+\(([^()]+)\)\s*',text)
+            forms.update(normalize(a,level) for a in re.split(r'[/,;]',extra[1]))
+    return frozenset(forms-{''})
+
+
+def name_identity_kind(source, target, level, parent):
+    if normalize(source,level)==normalize(target,level):return 'exact'
+    if parent is None:return None
+    if identity_forms(source,level,parent)&identity_forms(target,level,parent):
+        return 'qualified' if ',' in source or ',' in target else 'spelling_alias'
+    if any(a['level']==level and a['target']==target and normalize(a['alias'],level)==normalize(source,level)
+           and normalize(a['province'],0)==normalize(parent[0],0) for a in ALIASES):return 'registered_alias'
+    if level==1:
+        sk,sc=city_parts(source);tk,tc=city_parts(target)
+        if sc and sc==tc and not(sk and tk and sk!=tk):return 'city_core'
+    return None
+
+
+def unique_identity_paths(level,name,parent,paths):
+    if parent is None:return {}
+    eligible=[p for p in paths if p[:-1]==parent]
+    exact={p:'exact' for p in eligible if normalize(name,level)==normalize(p[-1],level)}
+    if exact:return exact
+    found={p:kind for p in eligible if (kind:=name_identity_kind(name,p[-1],level,parent))}
+    return found if len(found)==1 else {}
+
+
 def ranked_candidates(level, name, parent, paths, province_paths=()):
     """Return (priority, text similarity, path, explanation), strongest first.
 
@@ -114,6 +154,7 @@ def ranked_candidates(level, name, parent, paths, province_paths=()):
     province_name = level == 1 and any(
         normalize(name, 0) in province_name_forms(p[0]) for p in province_paths)
     candidates = []
+    identities=unique_identity_paths(level,name,parent,eligible)
     qualified_name = name_with_validated_parent(name, level, parent)
     core=parenthesized_name_core(name,level) if parent is not None else None
     core_matches=[p for p in eligible if core and normalize(core,level)==normalize(p[-1],level)]
@@ -135,6 +176,10 @@ def ranked_candidates(level, name, parent, paths, province_paths=()):
             priority=0
             reason=('Nama sebelum tanda kurung sama dengan master; alias dalam tanda kurung adalah variasi ejaan. '
                     'Parent yang sama menjadi batas lokasi. Nama sumber dan ID final tetap perlu dikonfirmasi.')
+        elif identities.get(path) in {'spelling_alias','qualified'}:
+            priority=0
+            reason=('Nama inti/alias pada master sama dengan nama sumber dalam Parent yang sama; '
+                    'keterangan nama pada kedua sisi sudah diperiksa. Usulan tetap perlu dikonfirmasi.')
         elif parent is None:
             continue
         elif any(a['level'] == level and normalize(a['province'], 0) == normalize(path[0], 0)
@@ -160,7 +205,7 @@ def ranked_candidates(level, name, parent, paths, province_paths=()):
         if priority < 3 or score >= 50:
             candidates.append((priority, score, path, reason))
     candidates.sort(key=lambda item: (item[0], -item[1], item[2]))
-    if (qualified_name is not None or core is not None) and any(c[0]==0 for c in candidates):
+    if (qualified_name is not None or core is not None or any(k in {'spelling_alias','qualified'} for k in identities.values())) and any(c[0]==0 for c in candidates):
         return [c for c in candidates if c[0]<3]
     # Retain all exact/alias/core evidence, plus at most three fuzzy suggestions.
     return [c for c in candidates if c[0] < 3] + [c for c in candidates if c[0] == 3][:3]

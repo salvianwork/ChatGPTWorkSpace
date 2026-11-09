@@ -4,6 +4,7 @@ from regional_rename import qualified_rename_groups
 from regional_parent_actions import parent_action_note
 from regional_review import candidate_id_review, unknown_parent_city_candidates, unique_review_candidates
 from regional_matching import ranked_candidates, district_context_candidates, city_context_candidates, district_other_city_candidates
+from regional_review_context import legacy_parent_context,city_alias_candidates
 import csv,json,re,unicodedata,collections,pathlib,hashlib,zipfile,argparse
 import openpyxl
 import pandas as pd
@@ -40,6 +41,8 @@ for i in range(4):
  for p in sorted(master[i]):
   ix[(p[:-1],norm(p[-1],i))].add(p);ch[p[:-1]].append(p);ns[norm(p[-1],i)].add(p)
  indices.append(ix);children.append(ch);names.append(ns)
+kelurahan_by_city=collections.defaultdict(list)
+for p in sorted(master[3]):kelurahan_by_city[p[:2]].append(p)
 issues=[]; preferred=[collections.defaultdict(set) for _ in levels]
 formula_maps=[]
 for i in range(4):
@@ -125,7 +128,17 @@ for i,rows in enumerate(data):
   if path is None or conflict:
    out['Status']='REVIEW_PARENT_CONFLICT' if conflict else 'REVIEW_UNMATCHED'
    out['Action']='REVIEW_ONLY'
-   sugg=suggestion(i,name,parent)
+   review_parent=parent;context_note=''
+   if i==3 and parent is None and not conflict:
+    context=legacy_parent_context(row,direct_city,maps[2],maps[1],master[2])
+    if context:review_parent,context_note=context
+   sugg=suggestion(i,name,review_parent)
+   if context_note:sugg=[(priority,score,p,reason+' '+context_note) for priority,score,p,reason in sugg]
+   if i==3 and review_parent is None and direct_city:
+    sugg=[item for item in sugg if item[2][:2]==direct_city]
+    alias_hits=city_alias_candidates(name,direct_city,kelurahan_by_city[direct_city])
+    existing_paths={item[2] for item in sugg}
+    sugg += [(0,100.0,p,reason) for p,reason in alias_hits if p not in existing_paths]
    if conflict and direct_city and i==3:
     alternatives=[p for p in names[3].get(norm(name,3),set()) if p[:2]==direct_city]
     sugg += [(0,100.0,p,"Matches direct city evidence; conflicts with linked district") for p in sorted(alternatives) if p not in {item[2] for item in sugg}]

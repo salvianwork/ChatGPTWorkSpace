@@ -1287,3 +1287,108 @@ hash workbook hasilnya identik.
 
 Workbook 02 asli, workbook lain, README, CSV sumber, dan ZIP tidak diubah.
 Pengelompokan DATA DUPLIKAT/DATA BELUM JELAS tidak berubah pada tahap ini.
+
+## 9 November 2026 — alias master, Parent lama, dan usulan duplikat
+
+Tahap `daikin_identity_review.py` melanjutkan hasil 14 sheet di atas. Perbaikan
+berlaku pada workbook Daikin dan bukti review, tanpa mengubah penetapan ID pada
+keluaran otomatis. Nama inti/variasi ejaan dalam tanda kurung diperiksa pada
+kedua sisi pencocokan, bukan hanya nama sumber. Nama lengkap yang cocok persis
+didahulukan. Keterangan arah, angka, jenis wilayah, dan lokasi lain tidak
+diperlakukan sebagai alias ejaan. Alias yang mengarah ke beberapa lokasi tetap
+memerlukan review.
+
+Parent lama hanya menjadi konteks review jika kecamatan utama kosong,
+kabupaten/kota langsung sudah diketahui melalui relasi yang tersedia, dan
+nama/ID relasi lama mengarah ke satu kecamatan master dalam kabupaten/kota
+yang sama. Keterangan setelah koma harus cocok dengan lokasi tersebut.
+Kolom relasi sumber tidak diisi atau diganti. Bila hanya kabupaten/kota yang
+diketahui, nama yang cocok pada master dapat ditampilkan dengan keterangan
+bahwa kecamatan belum pasti; kasus tersebut tetap DATA BELUM JELAS.
+
+Sebanyak 2.705 sumber dipindahkan dari DATA BELUM JELAS ke DATA DUPLIKAT sebagai
+usulan, terdiri dari 172 kecamatan dan 2.533 kelurahan. Dasarnya: 431 nama/lokasi
+sama, 1.984 variasi nama dalam tanda kurung, 104 nama berketerangan lokasi
+setelah koma, dan 186 dugaan beda satu huruf. Dugaan ejaan dibatasi pada nama
+panjang, satu perubahan huruf, satu kandidat dalam Parent yang sama, serta
+tanpa perbedaan angka/arah. Jika ada nama/alias persis di kecamatan lain dalam
+kabupaten/kota yang sama, dugaan typo tidak dinaikkan menjadi duplikat.
+Semua usulan masih memerlukan konfirmasi Tim Daikin, terutama dugaan ejaan.
+
+DATA DUPLIKAT kini mempunyai Status Konfirmasi (G) dan Alasan Usulan (H).
+Input lama dipindahkan utuh menjadi M–Q: keputusan, ID final, catatan, PIC,
+tanggal. Tidak ada keputusan yang diisi otomatis. Alasan menyimpan relasi
+sumber yang sebenarnya, bukti lokasi, serta ketergantungan perbaikan ID tujuan
+di PERUBAHAN jika ada. Hitungan dampak baru memakai FK langsung pada ekspor;
+referensi pada relasi kecamatan lama disebut terpisah. Referensi pada objek
+Salesforce di luar paket tetap harus diperiksa sebelum penggabungan.
+
+Jika sumber diusulkan bergabung ke ID berbeda yang sudah ada, sumber tidak
+sekaligus diberi baris perbaikan Parent pada PERUBAHAN. Perbaikan dengan ID
+data tetap tetap memakai PERUBAHAN. Catatan PILIHAN MAPPING untuk sumber yang
+dipindahkan mengikuti status/alasan penggabungan yang sama, sehingga tidak
+ada instruksi kedua untuk mengisi Parent sumber yang akan dinonaktifkan.
+
+Contoh yang diperiksa:
+
+| Sumber | ID tujuan usulan | Struktur master |
+| --- | --- | --- |
+| Bontolanra `a1nJ4000000KXFjIAO` | `a1nfC00000VF8EpQAL` | Sulawesi Selatan \| Kab. Takalar \| Galesong Utara \| Bontolanra (Bonto Lanra) |
+| Pajar Indah `a1nJ4000000KXZlIAO` | `a1nfC00000VF9cwQAD` | Sumatra Selatan \| Kab. Muara Enim \| Gunung Megang \| Pajar Indah (Fajar Indah) |
+| Kulisusu (Kalingsusu/Kalisusu) `a1pJ40000008XNrIAM` | `a1pfC00000DcH4HQAV` | Sulawesi Tenggara \| Kab. Buton Utara \| Kulisusu |
+| Lantara Jaya `a1pJ40000008XPGIA2` | `a1pfC00000DcH4EQAV` | Sulawesi Tenggara \| Kab. Bombana \| Lantari Jaya |
+
+Pajar Indah ditautkan untuk review melalui relasi lama Gunung Megang, Muara
+Enim. ID tujuan sudah memiliki Parent `a1pfC00000DcH6XQAV` (Gunung Megang).
+ID Bontolebang tidak lagi menjadi usulan untuk Bontolanra. Perbaikan Parent
+ID tujuan Kulisusu/Lantari Jaya tetap menjadi ketergantungan review pada
+PERUBAHAN KECAMATAN.
+
+Rekomendasi 195 sumber lain diperjelas tanpa dipindahkan ke duplikat. Dua
+sumber yang memiliki usulan nama berbeda yang belum sejalan dengan master
+tetap dipertahankan. Bukti informasional lintas tingkat/lokasi tetap utuh;
+kandidat pada tingkat yang sama hanya diganti untuk sumber yang diperbaiki.
+Jumlah baris PILIHAN MAPPING menjadi 54.234 karena alternatif yang tidak lagi
+sesuai dibuang pada sumber tersebut.
+
+Hasil akhir: 5.810 DATA DUPLIKAT dan 14.412 DATA BELUM JELAS. Pada DATA BELUM
+JELAS, 8.919 memiliki ID rekomendasi; 3.612 memiliki lokasi tanpa ID yang pasti;
+1.881 belum memiliki rekomendasi. Jadi ID rekomendasi kosong berjumlah 5.493,
+bukan hanya kelompok tanpa rekomendasi. Sebanyak 704 data ber-ID masih memuat
+beberapa ID untuk dipilih. RINGKASAN, PDF, dan PPT dua slide mengikuti angka
+ini dan hash workbook terbaru.
+
+Validasi: seluruh 140 pengujian unit lulus. Validator paket memeriksa semua
+2.577.977 sel pada 14 sheet, termasuk urutan sel, shared strings, relasi ZIP,
+dropdown, format tanggal/input, dan batas styling. Seluruh 91.306 ID sumber
+tetap berada pada tepat satu kelompok utama; tidak ada duplikat mengarah ke
+dirinya sendiri, rantai duplikat, persetujuan otomatis, atau formula sel baru.
+Nilai dan jawaban duplikat lama terjaga; relasi aktual dan bukti sumber yang
+dipindahkan tetap tersimpan pada Alasan Usulan. Delapan sheet data lain identik
+secara byte. Semua 26 CSV selain Review_candidates.csv identik dengan pipeline
+sebelumnya, termasuk file mapping/insert/update otomatis. Workbook 02 asli,
+CSV sumber, workbook lain, README, dan ZIP tidak berubah.
+
+Workbook lengkap dibuka dan diekspor ke salinan uji melalui LibreOffice;
+salinan tersebut dibuka kembali dan mempertahankan 14 sheet beserta jumlah
+barisnya. Excel Desktop tidak tersedia sehingga pesan pemulihan pada aplikasi
+tersebut belum diuji langsung. Struktur sel terurut dan format di luar tabel
+yang sudah diperbaiki pada tahap sebelumnya tetap dipertahankan.
+
+```sh
+python cleansing/scripts/daikin_identity_review.py \
+  --workbook 'cleansing/client_review/Mandatory for Client/Daikin_Cleansing_Data_Regional.xlsx' \
+  --pipeline /tmp/daikin-identity-review/pipeline-final \
+  --backup /tmp/daikin-before-identity.xlsx \
+  --report /tmp/daikin-identity-report.json
+python cleansing/tests/check_daikin_identity_review.py \
+  --before /tmp/daikin-before-identity.xlsx \
+  --after 'cleansing/client_review/Mandatory for Client/Daikin_Cleansing_Data_Regional.xlsx' \
+  --pipeline /tmp/daikin-identity-review/pipeline-final \
+  --baseline-pipeline /tmp/daikin-readability/pipeline \
+  --report /tmp/daikin-identity-validation.json
+```
+
+Tahap ini menerima format DATA DUPLIKAT 15 kolom sebelum penambahan dan menolak
+penerapan ulang pada hasil 17 kolom. Tidak menulis ke Salesforce atau membuat
+file upload dari keputusan yang belum diberikan.

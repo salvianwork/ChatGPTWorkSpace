@@ -94,7 +94,9 @@ def client_candidate(d):
         # The context explains the choice; add an ID warning only when still needed.
         note=context+(' '+note if not target else '')
     elif raw_status=='ID_TERVERIFIKASI':
-        if 'alias dalam tanda kurung' in reason:
+        if 'Nama inti/alias pada master' in reason:
+            note='Nama sumber sama dengan nama inti atau alias pada master dalam lokasi yang sama. Pastikan ID utama yang akan digunakan.'
+        elif 'alias dalam tanda kurung' in reason:
             note='Nama inti cocok dengan master pada Parent yang sama. Nama dalam tanda kurung adalah variasi ejaan; pastikan data dan ID yang akan digunakan.'
         elif 'keterangan induk setelah koma' in reason:
             note='Nama cocok setelah keterangan wilayah setelah koma diperiksa.'
@@ -142,6 +144,9 @@ def client_candidate(d):
         note=parent_note if can_replace else note+'\n\n'+parent_note
     if 'alias dalam tanda kurung' in reason and 'tanda kurung' not in note:
         note='Nama inti sebelum tanda kurung cocok dengan master pada Parent yang sama. Lokasi dan ID tujuan tetap perlu dikonfirmasi.\n\n'+note
+    if 'Parent untuk review diambil dari relasi lama' in reason:
+        context=reason.split('Parent untuk review diambil dari relasi lama',1)[1]
+        note='Parent untuk review diambil dari relasi lama'+context+'\n\n'+note
     return [d['Nama_Kandidat'],d['Hierarki_Kandidat'],chosen,status,note]
 
 
