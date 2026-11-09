@@ -1,0 +1,30 @@
+﻿Istilah,Arti_Sederhana,Contoh
+Master data,Daftar wilayah yang dijadikan acuan benar,Master menyatakan nama yang benar adalah Kab. Bandung
+Data Salesforce,Data yang saat ini tersimpan di Salesforce,Record wilayah yang sedang diperiksa
+Data utama,Satu record Salesforce yang dipilih untuk dipertahankan,Satu record Kab. Bandung dipertahankan
+Canonical,Istilah teknis untuk data utama yang dipertahankan,Canonical record berarti data utama
+Sudah benar,Data utama sudah sesuai dengan master,Nama dan wilayah induknya sudah benar
+Perlu diperbaiki,Data sudah ada tetapi nama atau hubungan induknya perlu diperbaiki,Kecamatan masih menunjuk Kota/Kabupaten yang salah
+Calon data baru,Lokasi ada di master tetapi belum ditemukan record Salesforce yang dapat dipakai,Periksa kembali sebelum membuat record
+Perlu diperiksa sebelum membuat data baru,Data mungkin sudah ada tetapi ID atau hubungan induknya belum pasti,Jangan insert sebelum pemeriksaan selesai
+Duplikat,Dua atau lebih record mewakili lokasi yang sama,Kabupaten Bandung dan Kab. Bandung
+Data sumber,Record Salesforce yang sedang diperiksa atau akan dipindahkan,Id_Sumber adalah ID record asal
+Data tujuan,Record yang dipilih untuk dipertahankan atau digunakan,Id_Target adalah ID record tujuan
+Induk,Wilayah satu tingkat di atas,Kecamatan adalah induk Kelurahan
+Data anak,Wilayah atau record yang terhubung ke induk,Kelurahan adalah anak Kecamatan
+Lookup,Kolom Salesforce yang menghubungkan record,Kota_Kabupaten__c menghubungkan Kecamatan ke Kota/Kabupaten
+Hierarki wilayah,Urutan tingkat wilayah,Provinsi ke Kota/Kabupaten ke Kecamatan ke Kelurahan
+Mapping atau pemetaan,Menentukan data sumber diarahkan ke data tujuan,Duplikat diarahkan ke data utama
+Gap analysis,Perbandingan master dengan Salesforce,Mencari data kurang berlebih atau tidak cocok
+Kandidat,Kemungkinan data tujuan yang masih perlu diperiksa,Kandidat bukan keputusan akhir
+Temuan lintas tingkat,Nama ditemukan pada tingkat wilayah berbeda,Madura pada Kota/Kabupaten ditemukan sebagai Kelurahan
+Konflik hubungan,Dua informasi induk menunjukkan lokasi berbeda,Kota langsung berbeda dengan kota milik Kecamatan
+Tinjauan manual,Pemeriksaan oleh pengguna saat hasil belum dapat ditentukan dengan aman,Menentukan apakah data diperbaiki atau duplikat
+Insert,Membuat record baru,Buat hanya jika record belum ada
+Update,Mengubah record yang sudah ada,Memperbaiki nama atau ID induk
+Upsert,Membuat jika belum ada atau memperbarui jika sudah ada,Biasanya memakai External ID
+External ID,Kunci unik untuk mencegah data ganda,Gabungan kode seluruh tingkat wilayah
+Pindahkan referensi,Mengubah data anak agar menunjuk data utama,Kecamatan dipindahkan dari kota duplikat ke kota utama
+Nonaktifkan,Membuat record tidak digunakan lagi tanpa menghapus,Lakukan setelah referensi dipindahkan
+Data Loader,Alat Salesforce untuk upload banyak data,File berisi Id dan kolom yang disetujui
+Snapshot data,Salinan data pada tanggal tertentu,Paket memakai data 29 Oktober 2026
