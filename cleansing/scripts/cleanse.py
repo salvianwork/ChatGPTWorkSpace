@@ -5,6 +5,7 @@ from regional_parent_actions import parent_action_note
 from regional_review import candidate_id_review, unknown_parent_city_candidates, unique_review_candidates
 from regional_matching import ranked_candidates, district_context_candidates, city_context_candidates, district_other_city_candidates
 from regional_review_context import legacy_parent_context,city_alias_candidates
+from regional_location_text import LocationTextIndex,TEXT_REASON
 import csv,json,re,unicodedata,collections,pathlib,hashlib,zipfile,argparse
 import openpyxl
 import pandas as pd
@@ -43,6 +44,7 @@ for i in range(4):
  indices.append(ix);children.append(ch);names.append(ns)
 kelurahan_by_city=collections.defaultdict(list)
 for p in sorted(master[3]):kelurahan_by_city[p[:2]].append(p)
+location_text=LocationTextIndex(master[3])
 issues=[]; preferred=[collections.defaultdict(set) for _ in levels]
 formula_maps=[]
 for i in range(4):
@@ -142,11 +144,17 @@ for i,rows in enumerate(data):
    if conflict and direct_city and i==3:
     alternatives=[p for p in names[3].get(norm(name,3),set()) if p[:2]==direct_city]
     sugg += [(0,100.0,p,"Matches direct city evidence; conflicts with linked district") for p in sorted(alternatives) if p not in {item[2] for item in sugg}]
+   if i==3:
+    text_hits=location_text.candidates(name,row)
+    text_paths={p for p,reason in text_hits}
+    # A complete unique text path is review evidence even when it differs from
+    # both lookup branches. Keep those alternatives, but show text evidence first.
+    sugg=[(0,100.0,p,reason) for p,reason in text_hits]+[s for s in sugg if s[2] not in text_paths]
    for rank,(priority,score,p,reason) in enumerate(sugg,1):
     if priority<3 or score>=50:
-     candidates.append({'Object':objects[i],'Source_Id':rid,'Source_Name':name,'Rank':rank,'Similarity':score,
+     candidates.append({'Object':objects[i],'Source_Id':rid,'Source_Name':name,'Rank':0 if reason.startswith(TEXT_REASON) else rank,'Similarity':score,
                         'Candidate_Path':' | '.join(p),'Candidate_Name':p[-1],
-                        'Reason':('Matches direct city evidence; conflicts with linked district' if conflict and direct_city and p[:2]==direct_city else reason),
+                        'Reason':reason,
                         '_path':p,'_level':i})
   if path is None and i==1 and parent is None:
    for rank,(cp,reason) in enumerate(unknown_parent_city_candidates(name,row.get('Name Changes',''),master[1]),1):

@@ -1,4 +1,5 @@
 """Plain-language client presentation; matching and canonical decisions stay unchanged."""
+from regional_location_text import TEXT_REASON
 
 CHOICE_FIELDS = ['Nama','Lokasi','ID_Salesforce','Status','Catatan']
 CHOICE_HEADERS = [f'Pilihan_{i}_{field}' for i in range(1,4) for field in CHOICE_FIELDS]
@@ -147,6 +148,9 @@ def client_candidate(d):
     if 'Parent untuk review diambil dari relasi lama' in reason:
         context=reason.split('Parent untuk review diambil dari relasi lama',1)[1]
         note='Parent untuk review diambil dari relasi lama'+context+'\n\n'+note
+    if reason.startswith(TEXT_REASON):
+        status='Lokasi dari teks; perlu konfirmasi'
+        note=reason+'\n\n'+note
     return [d['Nama_Kandidat'],d['Hierarki_Kandidat'],chosen,status,note]
 
 

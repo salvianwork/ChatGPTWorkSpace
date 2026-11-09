@@ -5,6 +5,8 @@ from datetime import datetime
 from zoneinfo import ZoneInfo
 from collections import Counter
 import openpyxl
+from kelurahan_wide import unflatten,HEADERS as WIDE_HEADERS
+from merge_daikin_changes import HEADERS as CHANGE_HEADERS
 from pptx import Presentation
 from pptx.util import Inches,Pt
 from pptx.enum.shapes import MSO_SHAPE
@@ -28,16 +30,20 @@ summary=list(wb['RINGKASAN'].values)
 master,valid,changes,new,duplicate,unclear,pending=[sum(r[i] for r in summary[1:]) for i in range(1,8)]
 assert min(valid,changes,new,duplicate,unclear,pending)>=0 and pending<=valid
 assert valid+changes+duplicate+unclear==91306
-change_ids=set();change_keys=set();change_rows=0;pending_values=0;pending_locations=0;per_sheet={}
+change_ids=set();change_keys=set();change_rows=0;change_items=0;pending_values=0;pending_locations=0;per_sheet={}
 for title in ['PERUBAHAN KOTA','PERUBAHAN KECAMATAN','PERUBAHAN KELURAHAN']:
- rows=wb[title].values;h=next(rows);ix={k:i for i,k in enumerate(h)};n=0;ids=set()
+ rows=wb[title].values;h=next(rows);n=0;items=0;ids=set()
+ wide=title=='PERUBAHAN KELURAHAN' and tuple(h)==tuple(WIDE_HEADERS)
+ ix={k:i for i,k in enumerate(CHANGE_HEADERS if wide else h)}
  for row in rows:
-  rid=row[ix['Id Data']];key=rid,row[ix['Bagian yang Diubah']]
-  assert key not in change_keys;change_keys.add(key);change_ids.add(rid);ids.add(rid);n+=1;change_rows+=1
-  assert row[ix['Relasi Master yang Seharusnya']]
-  pending_values+=not row[ix['Nilai Usulan']]
-  pending_locations+='lokasi' in row[ix['Status Konfirmasi']].casefold()
- per_sheet[title]={'source_ids':len(ids),'review_rows':n}
+  n+=1;change_rows+=1
+  for part in unflatten(list(row)) if wide else [row]:
+   rid=part[ix['Id Data']];key=rid,part[ix['Bagian yang Diubah']]
+   assert key not in change_keys;change_keys.add(key);change_ids.add(rid);ids.add(rid);items+=1;change_items+=1
+   assert part[ix['Relasi Master yang Seharusnya']]
+   pending_values+=not part[ix['Nilai Usulan']]
+   pending_locations+='lokasi' in part[ix['Status Konfirmasi']].casefold()
+ per_sheet[title]={'source_ids':len(ids),'review_rows':n,'change_items':items}
 assert len(change_ids)==changes and change_rows>=changes
 rows=wb['DATA BELUM JELAS'].values;h=next(rows);ix={k:i for i,k in enumerate(h)};detail=Counter();data_ids=set()
 for row in rows:
@@ -119,7 +125,7 @@ txt(s,4.62,1.98,2.33,.22,'KELOMPOK',10,'white',True)
 txt(s,6.87,1.98,1.06,.22,'JUMLAH',10,'white',True,PP_ALIGN.RIGHT)
 txt(s,8.18,1.98,4.35,.22,'PENJELASAN / KEPUTUSAN TIM DAIKIN',10,'white',True)
 descs=['Nama dan Parent sesuai; sebagian masih\nmemerlukan konfirmasi ID utama.',
-       f'{fmt(changes)} ID unik; {fmt(change_rows)} baris review.\nKonfirmasi nama, Parent, dan lokasi.',
+       f'{fmt(changes)} ID unik; {fmt(change_rows)} baris Excel.\n{fmt(change_items)} bagian perubahan perlu direview.',
        'Pastikan tingkat wilayah, lokasi, provinsi,\ndan ID tujuan yang benar.',
        'Kecocokan kuat; konfirmasi ejaan, ID tujuan,\ndan referensi anak sebelum digabung.']
 for i,(label,value,color,desc) in enumerate(zip(labels,values,colors,descs)):
@@ -134,7 +140,7 @@ for x,n,msg,color in [(3.08,detail['id_available'],'ID rekomendasi tersedia','bl
  txt(s,x,5.82,2.96,.32,fmt(n),19,color,True);txt(s,x,6.24,2.96,.23,msg,11,'ink')
 txt(s,3.08,6.50,9.45,.16,f"Dari kelompok ber-ID, {fmt(detail['multiple_ids'])} data memuat beberapa ID; pilih satu ID final setelah dikonfirmasi.",9,'muted')
 txt(s,.57,6.81,12.20,.18,f"Catatan: {fmt(pending)} menunggu ID utama sudah termasuk data valid. ID rekomendasi kosong: {fmt(detail['id_blank'])} = {fmt(detail['location_without_id'])} + {fmt(detail['no_recommendation'])}.",10,'muted')
-notes(s,f'Grafik menghitung ID Salesforce unik: valid {valid}; review perubahan {changes}; belum jelas {unclear}; duplikat {duplicate}, total 91.306. Seluruh perbaikan nama dan Parent berada di PERUBAHAN sesuai objek. {changes} data mempunyai {change_rows} baris perubahan/hubungan. Satu ID boleh berulang untuk beberapa bagian; keputusan diberikan per baris. Sebanyak {pending_values} baris belum memiliki nilai usulan dan {pending_locations} baris memerlukan konfirmasi lokasi. Angka ini menghitung baris dan dapat saling beririsan. Jumlah master {master} serta calon data baru {new} menghitung lokasi, bukan data Salesforce. Sebanyak {pending} data menunggu ID utama sudah termasuk valid. DATA BELUM JELAS tetap: ID pertama tersedia {detail["id_available"]}, lokasi ada tanpa ID pertama {detail["location_without_id"]}, tanpa rekomendasi {detail["no_recommendation"]}; ID pertama kosong {detail["id_blank"]}. Sebanyak {detail["multiple_ids"]} data ber-ID memerlukan pemilihan satu ID akhir. Tidak ada persetujuan atau perubahan Salesforce otomatis.')
+notes(s,f'Grafik menghitung ID Salesforce unik: valid {valid}; review perubahan {changes}; belum jelas {unclear}; duplikat {duplicate}, total 91.306. Ada {change_rows} baris Excel dan {change_items} bagian perubahan. PERUBAHAN KELURAHAN memakai satu baris per ID dengan keputusan terpisah untuk setiap bagian; PERUBAHAN KOTA dan KECAMATAN tetap satu baris per perubahan. Jumlah ID perubahan unik tetap {changes}. Sebanyak {pending_values} bagian belum memiliki nilai usulan, dan {pending_locations} bagian memerlukan konfirmasi lokasi; kedua hitungan dapat beririsan. Sebanyak {pending} menunggu ID utama sudah termasuk valid. Jumlah master {master} serta calon data baru {new} menghitung lokasi. DATA BELUM JELAS: ID tersedia {detail["id_available"]}; lokasi tanpa ID {detail["location_without_id"]}; tanpa rekomendasi {detail["no_recommendation"]}; ID kosong {detail["id_blank"]}. Tidak ada persetujuan atau perubahan Salesforce otomatis.')
 
 s=base(2,'Langkah review: satu keputusan per perubahan',
        'Gunakan kolom kuning. Pilih perbaikan atau penggabungan sesuai status dan bukti lokasi.')
@@ -145,8 +151,8 @@ step(1,1.86,'Baca RINGKASAN & PETUNJUK','Pahami kelompok data dan wilayah acuann
 rect(s,.55,2.55,.37,.37,'blue');txt(s,.55,2.585,.37,.29,'2',16,'white',True,PP_ALIGN.CENTER)
 txt(s,1.08,2.57,11.6,.35,'Buka sheet sesuai kasus dan lakukan pemeriksaan berikut',15,'ink',True)
 cards=[(f'VALID KELURAHAN • {fmt(pending)}','Filter J: “Penetapan ID utama”.\nIsi keputusan & ID final; lengkapi\ncatatan, PIC, tanggal (kolom M–Q).','teal'),
-       (f'PERUBAHAN • {fmt(changes)} data','Baca bagian yang diubah dan usulannya.\nPutuskan setiap baris Nama, Parent,\natau Kabupaten/Kota Langsung.','blue'),
-       ('CONTOH • HUTAGURGUR','Dua baris: Parent kecamatan dan\nkabupaten/kota langsung. Keputusan\nsalah satu tidak menyetujui lainnya.','purple'),
+       (f'PERUBAHAN • {fmt(changes)} data','Kelurahan: satu baris per ID.\nReview Nama, Kecamatan, dan\nKabupaten/Kota secara terpisah.','blue'),
+       ('CONTOH • TAMAN SARI','Satu baris, dua bagian hubungan:\nKecamatan & Kabupaten/Kota Langsung.\nKeduanya diputuskan terpisah.','purple'),
        (f'DATA BELUM JELAS • {fmt(unclear)}','Kalimantan Tengah | Kab. Barito Selatan | Dusun Selatan | Buntok Kota\nRekomendasi: Dusun Selatan.','amber'),
        (f'DATA DUPLIKAT • {fmt(duplicate)}','Baca status, alasan, dan lokasi master.\nKonfirmasi ID tujuan; isi M–Q.\nPeriksa Parent tujuan & referensi anak.','coral'),
        (f'CALON DATA BARU • {fmt(new)} lokasi','Cari data lama; jika ada, isi ID-nya.\nJika belum, konfirmasi pembuatan\ndata beserta nama dan Parent.','blue')]
@@ -155,10 +161,10 @@ for i,(title,body,color) in enumerate(cards):
  rect(s,x,y,3.94,1.00,'white');rect(s,x,y,.04,1.00,color)
  txt(s,x+.14,y+.11,3.65,.23,title,10.4,color,True);txt(s,x+.14,y+.38,3.65,.59,body,10.8,'ink')
 step(3,5.30,'Periksa bukti & status','PERUBAHAN: ID tetap. DATA DUPLIKAT: periksa usulan penggabungan dengan bukti kuat.\nDATA BELUM JELAS: pastikan lokasi dan ID. Review Parent tujuan sebelum penggabungan.')
-step(4,5.95,'Isi hasil keputusan','PERUBAHAN: keputusan N, nilai final O, lokasi final P; catatan, PIC, tanggal Q–S.\nLengkapi sel merah. Baris Nama diisi nama; baris hubungan diisi ID Salesforce.')
-step(5,6.50,'Kirim hasil review','Filter keputusan kosong untuk melihat pekerjaan tersisa. Tim cleansing menyiapkan\nfile perubahan Salesforce setelah keputusan disetujui.',.43)
-notes(s,'PERUBAHAN KOTA, PERUBAHAN KECAMATAN, dan PERUBAHAN KELURAHAN mempunyai 19 kolom yang sama: A Objek, B Id Data, C Nama Data, D Bagian yang Diubah, E Nilai Sekarang, F Nama Relasi Sekarang, G Konteks Lokasi Sekarang, H Nilai Usulan, I Nama Relasi Usulan, J Relasi Master yang Seharusnya, K Status Konfirmasi, L Penjelasan dan Tindakan, M Temuan Pada Tingkat Lain, N Keputusan Tim Daikin, O Nilai Final Tim Daikin, P Lokasi Final Tim Daikin, Q Catatan Tim Daikin, R PIC Tim Daikin, S Tanggal Konfirmasi. Baris Nama memakai nama pada nilai sekarang/usulan/final; baris hubungan memakai ID relasi. Satu baris tidak mengubah ID data. Setujui usulan hanya tersedia jika nilai dan lokasi cukup jelas. Gunakan nilai final memerlukan O; lokasi yang belum pasti juga memerlukan P berisi urutan provinsi hingga data. Tolak usulan atau Perlu diskusi memerlukan catatan. PIC dan tanggal diisi per keputusan. Hutagurgur mempunyai dua hubungan yang diputuskan secara terpisah; Parent kecamatan belum mempunyai ID usulan, sedangkan kabupaten/kota langsung mempunyai ID usulan. Sebanyak 132 data juga memperoleh baris Nama terpisah untuk konfirmasi yang sudah ada sebelumnya. Konfirmasi nama tidak otomatis disetujui oleh keputusan Parent. Pada VALID KELURAHAN, filter J berisi Penetapan ID utama lalu isi M–Q. Pada DATA BELUM JELAS, judul rekomendasi tidak bernomor. Bukti master Buntok adalah Kalimantan Tengah | Kab. Barito Selatan | Dusun Selatan | Buntok Kota; rekomendasi kecamatannya Dusun Selatan. Bukti lintas tingkat menampilkan struktur lokasi tanpa awalan label tingkat wilayah dan tetap memisahkan Master serta ekspor Salesforce. DATA BELUM JELAS dan PILIHAN MAPPING tetap dipakai untuk memilih ID tujuan setelah lokasi diketahui. File review tidak mengubah Salesforce otomatis.')
-notes(s,s.notes_slide.notes_text_frame.text+'\nDATA DUPLIKAT: G Status Konfirmasi, H Alasan Usulan, M Keputusan Tim Daikin, N Id Tujuan Final, O Catatan, P PIC, Q Tanggal. Dugaan beda satu huruf tetap memerlukan konfirmasi ejaan. Bontolanra dan Pajar Indah cocok dengan variasi nama pada master dalam Parent yang sama. Untuk Pajar Indah, master adalah Sumatra Selatan | Kab. Muara Enim | Gunung Megang | Pajar Indah (Fajar Indah). Parent tujuan sudah Gunung Megang. Jika sumber digabung, tidak perlu mengisi Parent sumber sebagai tindakan kedua. Tidak ada penggabungan atau persetujuan otomatis.')
+step(4,5.95,'Isi hasil keputusan','Kelurahan: keputusan Kecamatan O, Kabupaten/Kota AB, Nama AL.\nIsi nilai final, PIC, tanggal per bagian. Kota/kecamatan tetap memakai N–S.')
+step(5,6.50,'Kirim hasil review','Kelurahan: filter bagian yang perlu direview, lalu keputusan bagian itu yang kosong.\nTim cleansing menyiapkan file Salesforce setelah hasil review disetujui.',.43)
+notes(s,'PERUBAHAN KELURAHAN: satu baris per ID. D berisi bagian yang perlu direview, E berisi acuan master bersama atau acuan berlabel per bagian, F temuan lintas tingkat, G panduan. Parent Kecamatan H–T: H ID sekarang, I nama sekarang, J konteks, K ID usulan, L nama usulan, M status, N penjelasan, O keputusan, P ID final, Q lokasi final, R catatan, S PIC, T tanggal. Kabupaten/Kota Langsung U–AG: U ID sekarang, V nama sekarang, W konteks, X ID usulan, Y nama usulan, Z status, AA penjelasan, AB keputusan, AC ID final, AD lokasi final, AE catatan, AF PIC, AG tanggal. Nama AH–AQ: AH nama usulan, AI konteks, AJ status, AK penjelasan, AL keputusan, AM nama final, AN lokasi final, AO catatan, AP PIC, AQ tanggal. Nama sekarang berada di C. Kolom kuning hanya pada bagian aktif. Setujui usulan hanya tersedia bila nilai dan lokasi cukup jelas. Gunakan nilai final memerlukan nilai final; lokasi yang belum pasti juga memerlukan lokasi final. PIC/tanggal diisi per bagian. Taman Sari a1nJ4000000Kcc4IAC mempunyai dua bagian hubungan dengan keputusan terpisah. Usulan ID masih kosong dan pilihan lokasi Taman Sari/Karang Sari belum diputuskan. PERUBAHAN KOTA dan KECAMATAN tetap 19 kolom, keputusan N, nilai final O, lokasi final P, catatan Q, PIC R, tanggal S. VALID KELURAHAN: filter J Penetapan ID utama, lalu isi M–Q. Semua ID data tetap; file ini tidak mengubah Salesforce otomatis.')
+notes(s,s.notes_slide.notes_text_frame.text+'\nDATA DUPLIKAT tetap memerlukan konfirmasi ID yang dipertahankan dan referensi anak; keputusan M–Q. DATA BELUM JELAS memakai judul rekomendasi tanpa nomor. Bukti teks ekspor hanya menjadi kandidat bila nama, kecamatan, kabupaten/kota, dan provinsi cocok dengan satu struktur master. Contoh Sukajaya a1nJ4000000KWlUIAW: Jawa Barat | Kab. Bandung Barat | Lembang | Sukajaya didukung teks ekspor, tetapi lookup sumber mengarah ke Pinrang dan Garut; tetap perlu dikonfirmasi. ID final tidak ditetapkan otomatis. Bukti Buntok tetap Kalimantan Tengah | Kab. Barito Selatan | Dusun Selatan | Buntok Kota; rekomendasi kecamatannya Dusun Selatan. Master dan Salesforce tetap dipisahkan dalam temuan lintas tingkat.')
 
 assert len(prs.slides)==2
 for page,sh,value,size in TEXT:
@@ -167,7 +173,7 @@ path=ROOT/'Daikin_Ringkasan_dan_Panduan_Review_Terbaru_2_Slide.pptx';prs.save(pa
 assert SHA==hashlib.sha256(SOURCE.read_bytes()).hexdigest()
 (ROOT/'source_and_counts.json').write_text(json.dumps({'source':str(SOURCE),'source_ref':SOURCE_REF,'sha256':SHA,
  'source_records':91306,'master_locations':master,'valid':valid,'valid_pending_id_subset':pending,'changes':changes,
- 'change_review_rows':change_rows,'changes_by_sheet':per_sheet,'pending_change_values':pending_values,
+ 'change_review_rows':change_rows,'change_items':change_items,'changes_by_sheet':per_sheet,'pending_change_values':pending_values,
  'pending_change_locations':pending_locations,'unclear':unclear,'duplicate':duplicate,'new_locations':new,
  'unclear_first_id_available':detail['id_available'],'unclear_location_without_id':detail['location_without_id'],
  'unclear_no_recommendation':detail['no_recommendation'],'unclear_first_id_blank':detail['id_blank'],

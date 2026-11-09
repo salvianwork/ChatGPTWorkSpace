@@ -1443,3 +1443,95 @@ python cleansing/tests/check_compact_daikin_notes.py \
   --after 'cleansing/client_review/Mandatory for Client/Daikin_Cleansing_Data_Regional.xlsx' \
   --report /tmp/daikin-compact-notes-validation.json
 ```
+
+## 9 November 2026 — kandidat dari teks lokasi dan satu baris per kelurahan
+
+`regional_location_text.py` membaca teks ekspor yang menyebut urutan lengkap
+kelurahan, kecamatan, kabupaten/kota, dan provinsi. Keempat bagian harus cocok
+dengan satu path master. Awalan Kota/Kabupaten yang eksplisit tidak boleh
+bertentangan, alias harus memenuhi aturan nama yang sudah ada, dan kode pos
+yang tertulis harus konsisten dengan kolom kode pos sumber bila tersedia.
+Kode pos tidak dipakai untuk menebak lokasi. Teks parsial, nama berbeda,
+provinsi berbeda, atau kombinasi yang ambigu tidak membentuk kandidat ini.
+
+Aturan hanya menambah/mendahulukan kandidat review ketika nama/hubungan sumber
+belum cocok atau mempunyai konflik. Semua relasi lookup dan mapping otomatis
+tetap. Status tampil sebagai “Lokasi dari teks; perlu konfirmasi”, termasuk
+ketika ID kandidat tersedia. Tidak ada ID final atau persetujuan yang diisi.
+ID sumber sendiri tidak ditampilkan sebagai ID tujuan pada DATA BELUM JELAS.
+
+Contoh Sukajaya `a1nJ4000000KWlUIAW` sekarang menampilkan
+`Jawa Barat | Kab. Bandung Barat | Lembang | Sukajaya`, sesuai teks
+`Sukajaya,Lembang, Bandung Barat, Jawa Barat 40391` dan master. Parent utama
+masih menunjuk Lembang di Pinrang, kabupaten/kota langsung Garut, dan relasi
+kecamatan lama Cisewu. Semua fakta dan ID tersebut tetap dijelaskan. ID
+rekomendasi kosong karena ID untuk path tersebut belum dapat dipastikan;
+alternatif Garut tetap di PILIHAN MAPPING dan tidak dipinjam untuk path baru.
+
+Sebanyak 7.884 sumber memperoleh penjelasan teks lokasi; 2.299 di antaranya
+berganti lokasi rekomendasi utama. PILIHAN MAPPING menjadi 55.974 baris.
+Alternatif lama dan seluruh bukti informasional tetap tersedia; hanya baris
+kandidat pada path utama yang diganti dengan penjelasan baru bila sudah ada.
+Jawaban Tim Daikin yang sudah diisi tidak dialihkan ke rekomendasi berbeda.
+
+`PERUBAHAN KELURAHAN` kini satu baris per ID: 20.039 baris lama menjadi 16.329
+baris, tetap memuat seluruh 20.039 bagian perubahan. Kolom A–G menyimpan
+identitas, daftar bagian aktif, acuan master, bukti lintas tingkat, dan panduan.
+Bagian Parent Kecamatan berada di H–T, Kabupaten/Kota Langsung di U–AG,
+dan Nama di AH–AQ. Setiap bagian mempunyai keputusan, nilai final, lokasi
+final, catatan, PIC, dan tanggal tersendiri; nilai serta jawaban lama
+dipertahankan. Bagian yang tidak aktif kosong dan tidak diberi warna input.
+Kolom keputusan masing-masing adalah O, AB, AL. Nilai final masing-masing
+P, AC, AM; final Nama berisi nama, sedangkan final hubungan berisi satu ID.
+
+Ada 24 ID dengan acuan master berbeda antarbagian. Acuan tersebut diberi
+label bagian dalam satu kolom bersama dan tidak dipilih/disatukan menjadi
+satu lokasi. Semua sumber lain menampilkan acuan yang sama sekali saja.
+Penjelasan tiap bagian tetap menyimpan fakta khusus dan alasan ID kosong;
+instruksi umum dipindahkan ke Panduan Review. Dropdown dan aturan isian wajib
+tetap bekerja secara independen. Setujui usulan tidak tersedia bila nilai atau
+lokasi belum pasti. Tidak ada formula sel baru atau styling di luar tabel.
+
+Taman Sari `a1nJ4000000Kcc4IAC` kini satu baris dengan dua bagian hubungan.
+Usulan ID tetap kosong dan kedua pilihan master Taman Sari/Karang Sari tetap
+ada. Nilai sekarang Ketapang serta Kab. Tanggamus tetap dipertahankan.
+PERUBAHAN KOTA dan KECAMATAN tetap memakai format sebelumnya. Total seluruh
+sheet perubahan: 17.606 ID unik, 17.617 baris fisik, 21.327 bagian perubahan.
+PETUNJUK, kamus, PDF, dan PPT dua slide mengikuti perbedaan hitungan ini.
+Untuk mencari pekerjaan kelurahan tersisa, filter bagian aktif dahulu, lalu
+filter keputusan bagian tersebut yang masih kosong.
+
+DATA BELUM JELAS tetap 14.412 sumber: 7.958 memiliki ID rekomendasi, 5.364
+memiliki lokasi tanpa ID, dan 1.090 belum memiliki rekomendasi. ID kosong
+menjadi 6.454; ID kandidat pada lokasi lama tidak dibawa ke lokasi baru hanya
+agar terisi. DATA DUPLIKAT tetap 5.810 dan kelompok data lain tidak berubah.
+
+Seluruh 156 pengujian unit lulus. Validator merekonstruksi setiap bagian dari
+format lebar dan membandingkan seluruh nilai sekarang/usulan, konteks master,
+status, bukti, dan enam kolom input dengan data lama. Pengujian juga meliputi
+PIC/tanggal berbeda antarbagian, dropdown pada usulan kosong, dan pemisahan
+keputusan. Semua 91.306 ID sumber terjaga. Sembilan sheet data lain identik
+secara byte, termasuk RINGKASAN, seluruh VALID, PERUBAHAN KOTA/KECAMATAN,
+CALON DATA BARU, dan DATA DUPLIKAT. Semua 26 CSV keluaran otomatis identik;
+hanya Review_candidates.csv pada pipeline uji berubah.
+
+Audit paket memeriksa 2.920.287 sel pada 14 sheet. Workbook final dibuka dan
+diekspor melalui LibreOffice, kemudian salinannya dibuka kembali dengan 16.329
+baris kelurahan dan 43 kolom. Excel Desktop tidak tersedia untuk pengujian
+langsung. PDF dua halaman diuji terhadap seluruh teks slide dan memakai hash
+Excel final. Workbook 02 asli, workbook lain, CSV sumber, README, dan ZIP
+sumber tetap tidak berubah.
+
+```sh
+python cleansing/scripts/cleanse.py --output-dir /tmp/daikin-wide-review/pipeline-final
+python cleansing/scripts/apply_daikin_wide_review.py \
+  --workbook 'cleansing/client_review/Mandatory for Client/Daikin_Cleansing_Data_Regional.xlsx' \
+  --pipeline /tmp/daikin-wide-review/pipeline-final --source-dir . \
+  --backup /tmp/daikin-before-wide.xlsx --report /tmp/daikin-wide-applied.json
+python cleansing/tests/check_daikin_wide_review.py \
+  --before /tmp/daikin-before-wide.xlsx \
+  --after 'cleansing/client_review/Mandatory for Client/Daikin_Cleansing_Data_Regional.xlsx' \
+  --pipeline /tmp/daikin-wide-review/pipeline-final \
+  --baseline-pipeline /tmp/daikin-identity-review/pipeline-final --source-dir . \
+  --applied-report /tmp/daikin-wide-applied.json --report /tmp/daikin-wide-validation.json
+```
