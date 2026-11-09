@@ -169,7 +169,7 @@ def mapping_row(d):
 def ensure_selection_matches(old_options, new_options, decision, choice=''):
     """Do not silently change what an already-filled client choice points to."""
     import re
-    if decision=='Gunakan rekomendasi 1':decision='PILIH_KANDIDAT_1'
+    if decision in {'Gunakan rekomendasi','Gunakan rekomendasi 1'}:decision='PILIH_KANDIDAT_1'
     match=re.fullmatch(r'PILIH_KANDIDAT_([123])',str(decision or '').strip())
     if match:
         index=int(match[1])-1

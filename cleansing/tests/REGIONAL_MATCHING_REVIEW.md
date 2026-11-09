@@ -1197,3 +1197,93 @@ Tahap hanya menerima struktur 15 sheet sebelum penggabungan dan menolak
 penerapan ulang pada hasil 14 sheet. CSV dibaca untuk nama serta konteks relasi
 saat ini; tidak ditulis. Pembuatan file upload tetap proses terpisah sesudah
 review dan persetujuan Tim Daikin.
+
+## 9 November 2026 — struktur bukti master dan perbaikan file Excel
+
+Tahap `polish_daikin_workbook.py` diterapkan setelah penggabungan Parent.
+Temuan lintas tingkat pada DATA BELUM JELAS dan PERUBAHAN menampilkan struktur
+langsung dengan pemisah ` | `, tanpa awalan Provinsi/Kota/Kecamatan/Kelurahan.
+Master dan ekspor Salesforce tetap menjadi dua bagian berbeda. Bukti dari
+Master tidak digunakan untuk mengisi lokasi Salesforce yang belum diketahui.
+Maksimum tiga lokasi ditampilkan per sumber/tingkat, dengan jumlah lokasi
+lainnya. Tingkat wilayah tetap tersedia sebagai metadata pada PILIHAN MAPPING.
+
+Bukti pendukung yang sudah digunakan oleh mesin rekomendasi sekarang juga
+masuk ke temuan Master. Pengambilan bukti memeriksa bahwa seluruh path ada
+pada master dan ID rekomendasinya berkaitan dengan Parent pada path tersebut.
+Bukti untuk rekomendasi yang sedang ditampilkan didahulukan pada daftar lokasi.
+Tidak dilakukan pencocokan sebagian nama secara umum. Variasi Buntok menjadi
+Buntok Kota dibatasi pada konteks rekomendasi yang sudah tersedia; Buntok Baru
+di kabupaten lain tidak ditambahkan ke bukti untuk kasus ini.
+
+Contoh Buntok `a1pJ40000008X4aIAE`:
+
+```text
+• Hasil Master:
+  - Kalimantan Tengah | Kab. Barito Selatan | Dusun Selatan | Buntok Kota
+  Keterangan: variasi nama “Buntok” → “Buntok Kota”.
+```
+
+Master tersebut melengkapi temuan Salesforce yang lokasinya masih belum
+lengkap. Rekomendasi tetap Kecamatan Dusun Selatan dengan ID
+`a1pfC00000DcGqWQAV` dan lokasi kecamatan tiga tingkat. Struktur lengkap empat
+tingkat ditampilkan di catatan sebagai bukti. Baris bukti Master tambahan
+pada PILIHAN MAPPING tidak mempunyai ID tujuan. Jumlah baris bukti menjadi
+59.405; jumlah dan urutan record pada semua sheet lainnya tetap.
+
+Sebanyak 467 data mempunyai bukti struktur master dari rekomendasi. Ada 453
+catatan rekomendasi yang diperjelas memakai path lengkap untuk pilihan yang
+sedang ditampilkan. Penjelasan khusus ID kosong/konflik tetap dipertahankan,
+termasuk peringatan yang sebelumnya berada pada paragraf pertama. Total
+2.102 sel temuan lintas tingkat diperbarui. Judul lima kolom menjadi
+Rekomendasi Nama, Rekomendasi Lokasi, Rekomendasi ID Salesforce, Rekomendasi
+Status, Rekomendasi Catatan. Pilihan Gunakan rekomendasi juga tidak bernomor;
+arti keputusan, dropdown, dan aturan kelengkapan tetap sama.
+
+Dua masalah struktur/tampilan ditemukan pada file sebelumnya:
+
+- Pada 20.511 baris CALON DATA BARU, sel kosong input ditambahkan sesudah
+  kolom N tanpa diurutkan kembali. Contoh urutan: A, B, C, D, F, N, G, H,
+  I, J, K, L, M. File kini menyimpan sel dalam urutan referensi kolom menaik.
+  Helper `put()` juga diperbaiki agar sel kosong tidak membuat urutan rusak
+  pada regenerasi berikutnya. Ini perbaikan struktural yang relevan terhadap
+  pesan Excel Desktop yang meminta pemulihan isi; belum merupakan pembuktian
+  langsung bahwa semua versi Excel Desktop tidak akan menampilkan pesan itu.
+- Sepuluh header memakai style untuk satu baris penuh sehingga warna berlaku
+  sampai di luar tabel. Style baris penuh serta 26 style kolom penuh dihapus;
+  style efektif tetap disimpan pada sel tabel. Kolom input, format tanggal,
+  dan conditional formatting di dalam tabel tetap dipertahankan.
+
+Validator memeriksa 2.600.304 sel pada 14 sheet: urutan baris/sel, referensi
+sel, shared strings, indeks style, target relasi ZIP, content types, defined
+names, dimension/filter, batas dropdown/conditional formatting, serta panjang
+formula daftar/pesan validasi. Tidak ada formula sel baru atau styling
+baris/kolom penuh yang meluas di luar tabel. Semua 91.306 ID sumber, ID usulan,
+master mapping, jawaban review, dan urutan kandidat yang sudah ada terjaga.
+Seluruh 131 pengujian unit lulus. Regresi sel kosong dan perlindungan pilihan
+rekomendasi tanpa nomor tercakup dalam pengujian.
+
+Penerjemahan raw pipeline juga diuji: Buntok menghasilkan bukti Master Buntok
+Kota dengan ID kandidat kosong, sehingga konsistensi tidak hanya ditambahkan
+pada file akhir. Workbook lengkap berhasil dibuka/diekspor melalui LibreOffice
+ke salinan uji, lalu dibuka kembali. Excel Desktop tidak tersedia pada mesin
+ini; pengujian langsung di aplikasi yang dilaporkan pengguna belum dilakukan.
+PDF dan PPT tetap dua halaman/slide, memakai header dan hash Excel terbaru.
+
+```sh
+python cleansing/scripts/polish_daikin_workbook.py \
+  --workbook 'cleansing/client_review/Mandatory for Client/Daikin_Cleansing_Data_Regional.xlsx' \
+  --pipeline /tmp/daikin-readability/pipeline \
+  --backup /tmp/daikin-before-polish.xlsx \
+  --report /tmp/daikin-polish-report.json
+python cleansing/tests/check_polished_daikin_workbook.py \
+  /tmp/daikin-before-polish.xlsx \
+  'cleansing/client_review/Mandatory for Client/Daikin_Cleansing_Data_Regional.xlsx' \
+  /tmp/daikin-readability/pipeline
+```
+
+Penerapan ulang tahap ini diuji: tidak menambah bukti/catatan berulang dan
+hash workbook hasilnya identik.
+
+Workbook 02 asli, workbook lain, README, CSV sumber, dan ZIP tidak diubah.
+Pengelompokan DATA DUPLIKAT/DATA BELUM JELAS tidak berubah pada tahap ini.

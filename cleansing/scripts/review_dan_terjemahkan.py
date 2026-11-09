@@ -2,6 +2,7 @@ from regional_validity import REGION_FIELDS
 from regional_id_explanations import ID_NOTE_FIELDS
 from regional_parent_actions import PARENT_REVIEW_FIELDS
 from regional_review import REVIEW_FIELDS
+from regional_evidence import candidate_proof
 from pathlib import Path
 import argparse,csv,collections,re,unicodedata,json,hashlib
 import pandas as pd
@@ -69,6 +70,13 @@ for lev in range(4):
  indices.append(ix);sf.append(sx)
 old=tables['Review_candidates.csv'][1];candidates=[];removed=0
 sources_with_candidates={x['Source_Id'] for x in old}
+supporting=collections.defaultdict(lambda:collections.defaultdict(set))
+master_prefixes={p[:level+1] for p in paths for level in range(4)}
+for record in old:
+ proof=candidate_proof(record)
+ if proof:
+  assert proof in master_prefixes,'Recommendation evidence must exist in master'
+  supporting[record['Source_Id']][len(proof)-1].add(proof)
 for x in old:
  x=dict(x);x.update(Evidence_Type='KANDIDAT_OBJEK_SAMA',Found_Level=LEVELS[OBJECTS.index(x['Object'])],Data_Source='Master',Found_Count='',Location_Examples='',Parent_Context='')
  candidates.append(x)
@@ -92,7 +100,9 @@ for lev,rows in enumerate(allrows):
    if dest==lev:continue
    key=norm(x['Source_Name'],dest)
    for origin,index in [('Master',indices[dest]),('Ekspor Salesforce',sf[dest])]:
-    hits=sorted(index.get(key,set()))
+    hits=set(index.get(key,set()))
+    if origin=='Master':hits.update(supporting[x['Source_Id']][dest])
+    hits=sorted(hits)
     if not hits:continue
     found=True
     sameprovince=[p for p in hits if x.get('Resolved_Parent_Path') and p[0]==x['Resolved_Parent_Path'].split(' | ')[0]]
@@ -100,6 +110,9 @@ for lev,rows in enumerate(allrows):
              'Provinsi pada record yang sedang diperiksa berbeda dari lokasi temuan atau belum diketahui.')
     examples=sorted(hits,key=lambda p:(p not in sameprovince,p))[:5]
     reason=f'Nama "{x["Source_Name"]}" ditemukan pada {LEVELS[dest].lower()} di {origin.lower()}. Ini temuan pada tingkat wilayah lain, bukan pemetaan lokasi yang sudah benar. ID kandidat sengaja dikosongkan. '
+    if origin=='Master':
+     variants=sorted({p[-1] for p in supporting[x['Source_Id']][dest] if norm(p[-1],dest)!=key})
+     if variants:reason+='Variasi nama yang digunakan pada rekomendasi: '+', '.join(variants)+'. '
     if origin=='Ekspor Salesforce':reason+='Kemunculan dalam ekspor belum membuktikan bahwa data tersebut valid. '
     reason+=context
     cr={'Object':OBJECTS[lev],'Source_Id':x['Source_Id'],'Source_Name':x['Source_Name'],'Rank':'','Similarity':'','Candidate_Path':'','Candidate_Name':x['Source_Name'],'Reason':reason,'Candidate_Target_Id':'','Evidence_Type':'TEMUAN_LINTAS_TINGKAT','Found_Level':LEVELS[dest],'Data_Source':origin,'Found_Count':str(len(hits)),'Location_Examples':'; '.join(' | '.join(p) for p in examples),'Parent_Context':context}

@@ -110,7 +110,10 @@ def put(row,col,value,style=None):
     for child in list(c):c.remove(child)
     c.attrib.pop('t',None)
     if style is not None:c.set('s',str(style))
-    if value is None or value=='':return
+    if value is None or value=='':
+        # Excel expects cells in address order even when a new cell is blank.
+        row[:]=sorted(row,key=lambda c:column_index_from_string(re.sub(r'\d','',c.get('r'))))
+        return
     if isinstance(value,int):E.SubElement(c,TAG+'v').text=str(value)
     else:
         c.set('t','inlineStr');node=E.SubElement(E.SubElement(c,TAG+'is'),TAG+'t');node.text=str(value)
