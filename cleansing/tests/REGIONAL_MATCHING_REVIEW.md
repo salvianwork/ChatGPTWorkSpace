@@ -1100,3 +1100,100 @@ python cleansing/scripts/build_daikin_review_slides.py \
 Tahap workbook menolak layout yang sudah memiliki kolom input ID utama;
 jangan diterapkan dua kali atau pada workbook yang sudah diisi tanpa review.
 Tahap tidak menghubungi atau mengubah Salesforce.
+
+## 9 November 2026 — gabungkan Parent ke PERUBAHAN
+
+`merge_daikin_changes.py` diterapkan setelah tahap keterbacaan. Seluruh data
+pada PERBAIKAN PARENT - ID TETAP digabung menurut objek ke PERUBAHAN
+KECAMATAN dan PERUBAHAN KELURAHAN. Ketiga sheet PERUBAHAN sekarang memakai
+19 kolom yang sama, satu baris per nama atau hubungan. Sheet Parent beserta
+relasi paket, filter, dan daftar judulnya dihapus; jumlah sheet menjadi 14.
+Urutan sheet yang dipertahankan tidak berubah.
+
+| Sheet | ID data unik | Baris review |
+| --- | ---: | ---: |
+| PERUBAHAN KOTA | 458 | 458 |
+| PERUBAHAN KECAMATAN | 819 | 830 |
+| PERUBAHAN KELURAHAN | 16.329 | 20.039 |
+| Total | 17.606 | 21.327 |
+
+Perhitungan baris: 8.606 usulan lama menjadi 8.625 baris setelah perubahan
+nama/Parent/kabupaten-kota langsung yang digabung dalam satu record dipisah.
+Sebanyak 12.570 hubungan dari 9.000 ID data Parent dipindahkan. Konfirmasi nama
+yang sebelumnya melekat pada 132 data Parent menjadi 132 baris Nama tersendiri.
+Nama usulan pada 23 kasus yang memiliki beberapa nama master tetap kosong;
+nama atau lokasi tidak dipilih otomatis. Keputusan Parent tidak diwariskan
+menjadi persetujuan nama.
+
+Format utama:
+
+- B Id Data tetap menjadi ID Salesforce yang diperiksa.
+- D Bagian yang Diubah membedakan Nama, Parent Provinsi, Parent Kabupaten/Kota,
+  Parent Kecamatan, dan Kabupaten/Kota Langsung.
+- E/H Nilai Sekarang/Nilai Usulan berisi nama untuk baris Nama, atau ID relasi
+  untuk baris hubungan. F/I menampilkan nama relasi agar ID mudah dipahami.
+- G Konteks Lokasi Sekarang membedakan informasi dari relasi Salesforce
+  sebenarnya dengan konteks hasil pencocokan. Informasi yang tidak lengkap
+  ditandai; tidak ditebak dari lokasi rekomendasi.
+- J Relasi Master yang Seharusnya tetap menunjukkan provinsi hingga data.
+  Semua lokasi berasal dari bukti yang sudah ada sebelum penggabungan.
+- K Status Konfirmasi menjelaskan apakah nilai tersedia atau nama/lokasi/ID
+  masih perlu dipastikan. L mempertahankan alasan khusus ID kosong dan tindakan.
+- N–S adalah isian kuning: keputusan, nilai final, lokasi final, catatan, PIC,
+  tanggal. Nama dan hubungan diputuskan per baris. Untuk hubungan, nilai final
+  dibatasi satu ID Salesforce 15/18 karakter tanpa spasi/titik koma; baris Nama
+  menerima nama. Lokasi Final wajib ketika lokasi masih perlu dikonfirmasi.
+  Tolak usulan/Perlu diskusi memerlukan catatan. PIC serta tanggal diperlukan
+  ketika ada keputusan. Sel merah membantu melihat isian belum lengkap.
+
+Setujui usulan tersedia pada 13.991 baris yang memiliki satu nilai usulan dan
+lokasi cukup jelas. Sebanyak 7.310 hubungan yang ID usulannya kosong tetap
+kosong. Dengan 23 baris Nama tanpa usulan, total nilai usulan kosong 7.333.
+Ada 6.128 baris yang memerlukan konfirmasi lokasi; kelompok ini dapat beririsan
+dengan nilai kosong. Seluruh isian final/keputusan pada file ini tetap kosong,
+tidak diisi atau disetujui otomatis.
+
+RINGKASAN menggabungkan 9.000 ID Parent ke Perubahan untuk Direview (ID Unik),
+sehingga 8.606 menjadi 17.606. Kolom ringkasan Parent terpisah dihapus. Jumlah
+master, valid, calon lokasi baru, duplikat, belum jelas, dan subset menunggu ID
+utama tetap. PETUNJUK dan KAMUS ISTILAH diperbarui. PDF/PPT tetap dua halaman /
+slide; grafik sekarang empat kelompok Salesforce, dengan 17.606 data perubahan
+(21.327 baris review) sebagai satu kelompok. Panduan menunjukkan kolom baru dan
+contoh dua hubungan Hutagurgur yang diputuskan secara terpisah.
+
+Validasi independen mencocokkan setiap nilai sebelum/sesudah, meliputi ID data,
+nama sumber, ID relasi saat ini/usulan, alasan ID kosong, lokasi master, bukti
+lintas tingkat, dan jawaban review. Seluruh 91.306 ID sumber tetap ada dan
+kelompok utamanya saling terpisah. Belimbing tetap memakai ID
+`a1pJ40000008X0WIAU` dengan usulan nama Belimbing. Dua hubungan Hutagurgur tetap
+terpisah, dengan ID usulan Parent Kecamatan kosong dan ID Kabupaten/Kota
+Langsung `a1oJ40000009JMgIAM`.
+
+Delapan sheet berikut identik secara byte: seluruh VALID, CALON DATA BARU,
+DATA DUPLIKAT, DATA BELUM JELAS, PILIHAN MAPPING. Gaya dan shared strings tetap
+mengacu pada indeks semula; hanya jumlah pemakaian string disesuaikan.
+Referensi worksheet dan defined names diperiksa agar tidak menunjuk sheet
+yang dihapus. Tidak ada formula sel baru. Workbook asli 02, workbook lain,
+CSV sumber, README, serta ZIP tetap tidak berubah. 125 pengujian unit lulus.
+Workbook lengkap berhasil dibuka dan diekspor melalui LibreOffice ke salinan
+uji terpisah. PDF dan PowerPoint masing-masing dua halaman/slide; seluruh teks
+terekspor tanpa terpotong dan hash sumbernya cocok dengan Excel hasil merge.
+
+```sh
+python cleansing/scripts/merge_daikin_changes.py \
+  --workbook 'cleansing/client_review/Mandatory for Client/Daikin_Cleansing_Data_Regional.xlsx' \
+  --source-dir . \
+  --backup /tmp/daikin-before-merge-changes.xlsx \
+  --report /tmp/daikin-merge-changes-report.json
+python cleansing/tests/check_merged_daikin_changes.py \
+  /tmp/daikin-before-merge-changes.xlsx \
+  'cleansing/client_review/Mandatory for Client/Daikin_Cleansing_Data_Regional.xlsx'
+python cleansing/scripts/build_daikin_review_slides.py \
+  --workbook 'cleansing/client_review/Mandatory for Client/Daikin_Cleansing_Data_Regional.xlsx' \
+  --output-dir /tmp/daikin-merged-slides
+```
+
+Tahap hanya menerima struktur 15 sheet sebelum penggabungan dan menolak
+penerapan ulang pada hasil 14 sheet. CSV dibaca untuk nama serta konteks relasi
+saat ini; tidak ditulis. Pembuatan file upload tetap proses terpisah sesudah
+review dan persetujuan Tim Daikin.
