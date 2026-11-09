@@ -1392,3 +1392,54 @@ python cleansing/tests/check_daikin_identity_review.py \
 Tahap ini menerima format DATA DUPLIKAT 15 kolom sebelum penambahan dan menolak
 penerapan ulang pada hasil 17 kolom. Tidak menulis ke Salesforce atau membuat
 file upload dari keputusan yang belum diberikan.
+
+## 9 November 2026 — pemadatan catatan rekomendasi
+
+Tahap `compact_daikin_notes.py` mempersingkat Re­komendasi Catatan pada DATA
+BELUM JELAS dan Catatan Rekomendasi pada PILIHAN MAPPING untuk sumber yang
+masih berada di DATA BELUM JELAS. Catatan DATA DUPLIKAT tidak diubah. Tidak ada
+perubahan kandidat, lokasi, ID, status, pengelompokan, atau jawaban Tim Daikin.
+
+Sebanyak 11.994 sel diperbarui pada DATA BELUM JELAS. Total teks catatan turun
+dari 6.295.243 menjadi 4.878.618 karakter (22,5%). Sebanyak 28.551 catatan
+terkait pada PILIHAN MAPPING juga dipadatkan. Catatan yang sudah singkat atau
+memakai kalimat khusus di luar pola yang dikenal dipertahankan.
+
+Pemadatan memakai daftar kalimat yang diperiksa, tanpa batas panjang atau
+pemotongan teks. Nama, ID, angka jumlah data lain, dan lokasi lengkap tetap
+ditulis. Blok alasan kelurahan/kecamatan/kabupaten tetap terpisah. Peringatan
+umum bahwa ID dalam catatan hanya untuk pemeriksaan ditulis satu kali pada
+akhir catatan; alasan setiap ID belum pasti tetap berada di bloknya.
+Instruksi Lengkapi dan Ubah tidak diganti satu sama lain. Syarat pemilihan
+rekomendasi, pemeriksaan data lama, persetujuan data baru, serta peringatan
+agar tidak mengambil ID kandidat lain hanya karena tersedia tetap ada.
+
+Contoh Riding Panjang `a1nJ4000000KamyIAC`: catatan dipadatkan dari 1.342
+menjadi 899 karakter. Bukti Belinyu, Sungai Liat, acuan Kab. Bangka, seluruh
+ID yang disebutkan, alasan ID belum pasti, dan tindak lanjut tetap tersimpan.
+ID rekomendasi tetap kosong; tahap ini tidak memilih Belinyu atau Merawang
+dan tidak memperbaiki Parent secara otomatis.
+
+Seluruh 146 pengujian unit lulus. Validator membandingkan semua nilai pada
+dua sheet sebelum/sesudah dan memeriksa setiap klausa fakta/tindakan setelah
+penggantian kalimat yang diizinkan. Semua ID dalam setiap catatan tetap sama;
+hasil fungsi idempoten. Semua bagian ZIP lain identik, kecuali penyesuaian
+hitungan referensi shared strings. Jumlah/urutan sheet dan baris, style sel,
+wrap text, input tanggal, dropdown, serta penanda isian wajib tetap sama.
+Audit struktur paket lengkap tetap dilakukan untuk 14 sheet. Workbook 02
+asli, workbook lain, CSV sumber, ZIP sumber, dan README tidak diubah.
+
+Workbook dibuka/diekspor melalui LibreOffice dan salinannya dibuka kembali.
+Excel Desktop tidak tersedia untuk pengujian langsung. PDF/PPT tetap dua
+halaman/slide dengan angka ringkasan yang sama dan hash Excel terbaru.
+
+```sh
+python cleansing/scripts/compact_daikin_notes.py \
+  --workbook 'cleansing/client_review/Mandatory for Client/Daikin_Cleansing_Data_Regional.xlsx' \
+  --backup /tmp/daikin-before-compact-notes.xlsx \
+  --report /tmp/daikin-compact-notes-report.json
+python cleansing/tests/check_compact_daikin_notes.py \
+  --before /tmp/daikin-before-compact-notes.xlsx \
+  --after 'cleansing/client_review/Mandatory for Client/Daikin_Cleansing_Data_Regional.xlsx' \
+  --report /tmp/daikin-compact-notes-validation.json
+```
